@@ -57,7 +57,7 @@ chmod +x install.sh && ./install.sh
 ## 📌 Note
 
 - The method to install Wine may differ depending on your Linux distro.  
-  You can modify the instructions in `Command.txt` to suit your system.
+  You can modify the instructions in `./install.sh` to suit your system.
 - It is **strongly recommended to disable swap memory**,  
   as using swap can reduce the lifespan of your SSD.
 
