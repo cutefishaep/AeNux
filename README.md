@@ -1,5 +1,12 @@
 # AeNux
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/cutefishaep/AeNux/refs/heads/main/LOGO.png" alt="AeNux Logo" width="200"/><br>
+  <strong style="font-size:100px">AeNux</strong>
+</p>
+
+
+
 **AeNux** is a custom Linux command that helps you run **Adobe After Effects** on Linux using **Wine** and **Winetricks**. This project aims to provide a more seamless way to launch After Effects for users who prefer Linux over Windows, especially for creative work.
 
 > ⚠️ This project is for educational purposes only. Please do not misuse it.  
@@ -48,8 +55,11 @@ Here are some differences and advantages of AeNux on Linux:
 ## ⚙️ Installation & Configuration
 
 
+Clone the repository and run the installer:
 
----
+```bash
+chmod +x install.sh && ./install.sh
+```
 
 ## 📌 Note
 
