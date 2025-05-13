@@ -69,5 +69,14 @@ This project is open for educational and personal use only. No commercial redist
 
 ---
 
+## 📓 Credit
+
+THANKS A LOT FOR MattKC FOR MAKING THIS PROJECT POSSIBLE 🤩
+
+mattkc forum :
+https://forum.mattkc.com/viewtopic.php?t=337
+
+---
+
 Happy Editing on Linux! 🎬🐧
 
