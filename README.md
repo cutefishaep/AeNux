@@ -19,7 +19,9 @@
 - Launch Adobe After Effects on Linux using a single command.
 - Automatically configured to work with **Wine** and **Winetricks**.
 - Improved plugin compatibility (see differences below).
-
+- ✅ If you're using **Intel UHD Graphics**, the **Element 3D plugin** will detect your GPU **automatically**.
+  - No need to manually replace environment files like in Windows.
+- ⚡ **BCC** and **Sapphire plugins** import **significantly faster** compared to Windows, which often hangs or becomes unresponsive during import.
 ---
 
 ## 🐞 Known Issues
@@ -28,16 +30,7 @@
 - ⚠️ Some UI elements (e.g., Flow Plugin) may **flicker**.
 - ⚠️ **FX Console** works inconsistently — it is **recommended to install FX Console before other plugins**.
 - 💥 May **crash** if After Effects consumes all available RAM.
-
----
-
-## 🆚 Windows vs Linux (AeNux)
-
-Here are some differences and advantages of AeNux on Linux:
-
-- ✅ If you're using **Intel UHD Graphics**, the **Element 3D plugin** will detect your GPU **automatically**.
-  - No need to manually replace environment files like in Windows.
-- ⚡ **BCC** and **Sapphire plugins** import **significantly faster** compared to Windows, which often hangs or becomes unresponsive during import.
+- ❓ Please submit issue if you find some bugs!
 
 ---
 
