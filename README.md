@@ -1,4 +1,4 @@
-# AeNux v1.3
+# AeNux v0.3 (Alpha)
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/cutefishaep/AeNux/refs/heads/main/LOGO.png" alt="AeNux Logo" width="200"/><br>
