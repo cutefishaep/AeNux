@@ -100,7 +100,7 @@ mkdir -p "$HOME/.wine/drive_c/Program Files/Adobe/Common/Plug-ins/7.0/MediaCore"
 echo "[*] Copying AeNux files..."
 cp -rf "Ae2024/Support Files/"* "$HOME/.wine/drive_c/Program Files/Adobe/Adobe After Effects 2024/"
 
-rm -rf "/Ae2024"
+rm -rf "Ae2024"
 
 # Copy some images file
 echo "[*] Copying aenux.png to ~/.local/share/icons/"
