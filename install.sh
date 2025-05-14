@@ -115,8 +115,8 @@ cat > "$DESKTOP_FILE" <<EOL
 [Desktop Entry]
 Name=AeNux
 Comment=Run Adobe AeNux using Wine
-Exec=wine "/home/wahyupc/.wine/drive_c/Program Files/Adobe/Adobe After Effects 2024/AfterFX.exe"
-Path=/home/wahyupc/.wine/drive_c/Program Files/Adobe/Adobe After Effects 2024
+Exec=wine "/home/$USER/.wine/drive_c/Program Files/Adobe/Adobe After Effects 2024/AfterFX.exe"
+Path=/home/$USER/.wine/drive_c/Program Files/Adobe/Adobe After Effects 2024
 Type=Application
 Icon=aenux
 Terminal=false
@@ -128,13 +128,12 @@ echo "[✓] Shortcut created at: $DESKTOP_FILE"
 # Add to application menu
 echo "[*] Adding AeNux to application menu..."
 
-APPLICATION_MENU="$HOME/.local/share/applications/AeNux.desktop"
 cat > "$APPLICATION_MENU" <<EOL
 [Desktop Entry]
 Name=AeNux
 Comment=Run Adobe AeNux using Wine
-Exec=wine "/home/wahyupc/.wine/drive_c/Program Files/Adobe/Adobe After Effects 2024/AfterFX.exe"
-Path=/home/wahyupc/.wine/drive_c/Program Files/Adobe/Adobe After Effects 2024
+Exec=wine "/home/$USER/.wine/drive_c/Program Files/Adobe/Adobe After Effects 2024/AfterFX.exe"
+Path=/home/$USER/.wine/drive_c/Program Files/Adobe/Adobe After Effects 2024
 Type=Application
 Icon=aenux
 Terminal=false
