@@ -45,24 +45,34 @@ case $DISTRO in
   *) handle_error ;;
 esac
 
-# Step 2: Setup Wine repo
-echo "[*] Adding i386 architecture..."
-sudo dpkg --add-architecture i386
+# Step 2: Check if Wine is installed
+if command -v wine &>/dev/null; then
+  echo "[*] Wine is already installed. Skipping Wine installation."
+else
+  echo "[*] Wine not found, installing Wine..."
+  # Add i386 architecture and Wine repo
+  sudo dpkg --add-architecture i386
+  sudo mkdir -pm755 /etc/apt/keyrings
+  wget -O - https://dl.winehq.org/wine-builds/winehq.key | \
+    sudo gpg --dearmor -o /etc/apt/keyrings/winehq-archive.key
+  echo "[*] Adding WineHQ source for $distro..."
+  sudo wget -NP /etc/apt/sources.list.d/ \
+    "https://dl.winehq.org/wine-builds/$origin/dists/$distro/winehq-$distro.sources"
+  echo "[*] Installing Wine..."
+  sudo apt update
+  sudo apt install --install-recommends winehq-stable -y
+fi
 
-sudo mkdir -pm755 /etc/apt/keyrings
-wget -O - https://dl.winehq.org/wine-builds/winehq.key | \
-  sudo gpg --dearmor -o /etc/apt/keyrings/winehq-archive.key
+# Step 3: Check if Winetricks is installed
+if ! command -v winetricks &>/dev/null; then
+  zenity --error --title="Winetricks Not Found" \
+    --text="Winetricks is required for this setup but is not installed.\nPlease install Winetricks manually and rerun the script."
+  exit 1
+else
+  echo "[*] Winetricks is already installed. Skipping Winetricks installation."
+fi
 
-echo "[*] Adding WineHQ source for $distro..."
-sudo wget -NP /etc/apt/sources.list.d/ \
-  "https://dl.winehq.org/wine-builds/$origin/dists/$distro/winehq-$distro.sources"
-
-# Step 3: Install packages
-echo "[*] Installing Wine and dependencies..."
-sudo apt update
-sudo apt install --install-recommends winehq-stable winetricks unzip wget zenity -y
-
-# Step 4: Show wine version
+# Step 4: Show Wine version
 wine_version=$(wine --version)
 echo "[*] Wine version: $wine_version"
 
@@ -84,10 +94,30 @@ cp -f System32/msxml3.dll ~/.wine/drive_c/windows/system32/
 cp -f System32/msxml3.dll ~/.wine/drive_c/windows/system32/msxml3r.dll
 wine reg add "HKCU\\Software\\Wine\\DllOverrides" /v msxml3 /d native,builtin /f
 
-# Step 8: Download and extract Ae2024
-echo "[*] Downloading Ae2024..."
-wget -O "2024.zip" "https://huggingface.co/cutefishae/AeNux-model/resolve/main/2024.zip"
+# Step 8: Download or Select Ae2024.zip
+ACTION=$(zenity --list --title="Select .zip File or Download" \
+  --column="Action" \
+  "Download Ae2024.zip" \
+  "Select .zip file from your system" \
+  --height=300 --width=400)
 
+if [[ "$ACTION" == "Download Ae2024.zip" ]]; then
+  echo "[*] Downloading Ae2024.zip..."
+  wget -O "2024.zip" "https://huggingface.co/cutefishae/AeNux-model/resolve/main/2024.zip"
+elif [[ "$ACTION" == "Select .zip file from your system" ]]; then
+  ZIP_FILE=$(zenity --file-selection --title="Select Ae2024.zip" --file-filter="*.zip")
+  if [[ -z "$ZIP_FILE" ]]; then
+    zenity --error --text="No file selected. Exiting."
+    exit 1
+  fi
+  cp "$ZIP_FILE" "2024.zip"
+else
+  zenity --error --text="No action selected. Exiting."
+  exit 1
+fi
+
+# Extract the downloaded .zip file
+echo "[*] Extracting Ae2024.zip..."
 unzip -o "2024.zip" -d "Ae2024"
 rm "2024.zip"
 
