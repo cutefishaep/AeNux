@@ -35,12 +35,10 @@
 
 ## 💻 Tested On
 
-- **OS**: Linux Mint 22.1 Cinnamon  
+- **OS**: Linux Mint 22.1 Cinnamon & Debian 12 & ElementaryOS 8.0.1 & Ubuntu Budgie  
 - **CPU**: 11th Gen Intel® Core™ i3-1115G4 @ 3.00GHz × 2  
 - **GPU**: Intel Corporation Tiger Lake-LP GT2 [UHD Graphics G4]  
 - **Memory**: 8 GB RAM  
-
-> Results may vary on different hardware or distros.
 
 ---
 
@@ -51,6 +49,15 @@ Clone the repository and run the installer:
 
 ```bash
 chmod +x install.sh && ./install.sh
+```
+
+
+## ⚙️ Uninstall 
+
+Simply type
+```bash
+chmod +x uninstall.sh
+./uninstall.sh
 ```
 
 ## 📌 Note
