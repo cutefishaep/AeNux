@@ -1,41 +1,39 @@
 #!/bin/bash
 
-# Enable i386 architecture and add WineHQ repository
-echo "[*] Adding i386 architecture..."
-sudo dpkg --add-architecture i386
+LOGFILE="$HOME/aenux-setup.log"
+exec > >(tee -a "$LOGFILE") 2>&1
 
-# Setup keyrings
-sudo mkdir -pm755 /etc/apt/keyrings
-wget -O - https://dl.winehq.org/wine-builds/winehq.key | \
-  sudo gpg --dearmor -o /etc/apt/keyrings/winehq-archive.key
-
-clear 
-
-# Show OS and version info
-echo
-echo "[*] Detecting your operating system:"
-if command -v lsb_release &> /dev/null; then
-  lsb_release -a
-else
-  cat /etc/os-release
+# Ensure zenity is installed
+if ! command -v zenity &>/dev/null; then
+  echo "[*] Installing zenity..."
+  sudo apt update && sudo apt install zenity -y
 fi
 
-# Prompt user to select their distribution
-echo
-echo "Select your distribution:"
-echo "1) Ubuntu 25.04 (plucky)"
-echo "2) Ubuntu 24.10 (oracular)"
-echo "3) Ubuntu 24.04 / Linux Mint 22 (noble)"
-echo "4) Ubuntu 22.04 / Linux Mint 21.x (jammy)"
-echo "5) Ubuntu 20.04 / Linux Mint 20.x (focal)"
-echo "6) Debian Testing (trixie)"
-echo "7) Debian 12 (bookworm)"
-echo "8) Debian 11 (bullseye)"
-echo
+# Error handler
+handle_error() {
+  zenity --error --title="Installation Failed" \
+    --text="An error occurred during setup.\nCheck log at: $LOGFILE"
+  exit 1
+}
 
-read -p "Enter the number of your distribution [1-8]: " choice
+trap handle_error ERR
 
-case $choice in
+# Step 1: Select Distribution
+DISTRO=$(zenity --list --title="Select Your Distribution" \
+  --column="ID" --column="Distribution" \
+  1 "Ubuntu 25.04 (plucky)" \
+  2 "Ubuntu 24.10 (oracular)" \
+  3 "Ubuntu 24.04 / Mint 22 (noble)" \
+  4 "Ubuntu 22.04 / Mint 21.x (jammy)" \
+  5 "Ubuntu 20.04 / Mint 20.x (focal)" \
+  6 "Debian Testing (trixie)" \
+  7 "Debian 12 (bookworm)" \
+  8 "Debian 11 (bullseye)" \
+  --height=400 --width=400)
+
+[ -z "$DISTRO" ] && zenity --error --text="No distribution selected. Exiting." && exit 1
+
+case $DISTRO in
   1) distro="plucky"; origin="ubuntu" ;;
   2) distro="oracular"; origin="ubuntu" ;;
   3) distro="noble"; origin="ubuntu" ;;
@@ -44,103 +42,90 @@ case $choice in
   6) distro="trixie"; origin="debian" ;;
   7) distro="bookworm"; origin="debian" ;;
   8) distro="bullseye"; origin="debian" ;;
-  *) echo "Invalid option. Exiting..."; exit 1 ;;
+  *) handle_error ;;
 esac
 
-# Add the correct WineHQ source list
+# Step 2: Setup Wine repo
+echo "[*] Adding i386 architecture..."
+sudo dpkg --add-architecture i386
+
+sudo mkdir -pm755 /etc/apt/keyrings
+wget -O - https://dl.winehq.org/wine-builds/winehq.key | \
+  sudo gpg --dearmor -o /etc/apt/keyrings/winehq-archive.key
+
 echo "[*] Adding WineHQ source for $distro..."
 sudo wget -NP /etc/apt/sources.list.d/ \
   "https://dl.winehq.org/wine-builds/$origin/dists/$distro/winehq-$distro.sources"
 
-# Install Wine and Winetricks
-echo "[*] Updating package list and installing Wine & Winetricks..."
+# Step 3: Install packages
+echo "[*] Installing Wine and dependencies..."
 sudo apt update
-sudo apt install --install-recommends winehq-stable winetricks -y
+sudo apt install --install-recommends winehq-stable winetricks unzip wget zenity -y
 
-# Display Wine version
-clear
-wine --version
+# Step 4: Show wine version
+wine_version=$(wine --version)
+echo "[*] Wine version: $wine_version"
 
-# Winetricks setup
-echo "[*] Installing DXVK and Core Fonts..."
-winetricks dxvk corefonts
+# Step 5: Setup Winetricks packages
+echo "[*] Installing DXVK, Core Fonts, and GDIPLUS..."
+winetricks -q dxvk corefonts gdiplus fontsmooth=rgb
 
-echo "[*] Installing GDIPLUS and enabling font smoothing..."
-winetricks gdiplus fontsmooth=rgb
+# Step 6: Visual C++ Redists
+if [[ -f "vcr/install_all.bat" ]]; then
+  echo "[*] Installing Visual C++ Redistributables..."
+  wine "vcr/install_all.bat"
+else
+  echo "[!] Warning: vcr/install_all.bat not found. Skipping VC Redist install."
+fi
 
-# Install VC Redists
-echo "[*] Installing Visual C++ Redistributables..."
-wine vcr/install_all.bat
-
-# Register MSXML3 override
+# Step 7: MSXML3 override
 echo "[*] Registering msxml3 override..."
-cp -f System32/msxml3.dll System32/msxml3r.dll ~/.wine/drive_c/windows/system32/
+cp -f System32/msxml3.dll ~/.wine/drive_c/windows/system32/
+cp -f System32/msxml3.dll ~/.wine/drive_c/windows/system32/msxml3r.dll
 wine reg add "HKCU\\Software\\Wine\\DllOverrides" /v msxml3 /d native,builtin /f
 
-
-# Download and extract Ae2024.zip
-echo "[*] Downloading Ae2024.zip..."
+# Step 8: Download and extract Ae2024
+echo "[*] Downloading Ae2024..."
 wget -O "2024.zip" "https://huggingface.co/cutefishae/AeNux-model/resolve/main/2024.zip"
 
-# Make Direction
-mkdir -p "Ae2024"
-
-echo "[*] Extracting Ae2024.zip..."
-unzip -o "2024.zip" -d "Ae2024" # Extract to current directory
-
-# Clean up the zip file
+unzip -o "2024.zip" -d "Ae2024"
 rm "2024.zip"
 
-
-# Create AE folders and copy files
-echo "[*] Setting up Adobe AeNux directory..."
-mkdir -p "$HOME/.wine/drive_c/Program Files/Adobe/Adobe After Effects 2024"
-mkdir -p "$HOME/.wine/drive_c/Program Files/Adobe/Common/Plug-ins/7.0/MediaCore"
+# Step 9: Setup After Effects directory
+ae_dir="$HOME/.wine/drive_c/Program Files/Adobe/Adobe After Effects 2024"
+plugin_dir="$HOME/.wine/drive_c/Program Files/Adobe/Common/Plug-ins/7.0/MediaCore"
 
 echo "[*] Copying AeNux files..."
-cp -rf "Ae2024/Support Files/"* "$HOME/.wine/drive_c/Program Files/Adobe/Adobe After Effects 2024/"
-
+mkdir -p "$ae_dir" "$plugin_dir"
+cp -rf "Ae2024/Support Files/"* "$ae_dir/"
 rm -rf "Ae2024"
 
-# Copy some images file
-echo "[*] Copying aenux.png to ~/.local/share/icons/"
-sudo cp -f aenux.png ~/.local/share/icons/
+# Step 10: Icon setup
+mkdir -p ~/.local/share/icons/
+cp -f aenux.png ~/.local/share/icons/
 
-
-# Create desktop shortcut
-echo "[*] Creating desktop shortcut..."
-
-DESKTOP_FILE="$HOME/Desktop/AeNux.desktop"
-cat > "$DESKTOP_FILE" <<EOL
+# Step 11: Create desktop shortcut
+desktop_file="$HOME/Desktop/AeNux.desktop"
+cat > "$desktop_file" <<EOL
 [Desktop Entry]
 Name=AeNux
 Comment=Run Adobe AeNux using Wine
-Exec=wine "/home/$USER/.wine/drive_c/Program Files/Adobe/Adobe After Effects 2024/AfterFX.exe"
-Path=/home/$USER/.wine/drive_c/Program Files/Adobe/Adobe After Effects 2024
+Exec=wine "$ae_dir/AfterFX.exe"
+Path=$ae_dir
 Type=Application
 Icon=aenux
 Terminal=false
 EOL
 
-chmod +x "$DESKTOP_FILE"
-echo "[✓] Shortcut created at: $DESKTOP_FILE"
+chmod +x "$desktop_file"
 
-# Add to application menu
-echo "[*] Adding AeNux to application menu..."
+# Step 12: Application menu
+app_menu="$HOME/.local/share/applications/AeNux.desktop"
+cp "$desktop_file" "$app_menu"
+chmod +x "$app_menu"
 
-cat > "$APPLICATION_MENU" <<EOL
-[Desktop Entry]
-Name=AeNux
-Comment=Run Adobe AeNux using Wine
-Exec=wine "/home/$USER/.wine/drive_c/Program Files/Adobe/Adobe After Effects 2024/AfterFX.exe"
-Path=/home/$USER/.wine/drive_c/Program Files/Adobe/Adobe After Effects 2024
-Type=Application
-Icon=aenux
-Terminal=false
-EOL
+# Step 13: Done
+zenity --info --title="Installation Complete" \
+  --text="AeNux has been installed successfully!\nYou can launch it from your Desktop or Applications menu."
 
-chmod +x "$APPLICATION_MENU"
-echo "[✓] AeNux added to application menu at: $APPLICATION_MENU"
-
-echo "[✓] Setup complete! You can now run AeNux using Wine."
-
+exit 0
