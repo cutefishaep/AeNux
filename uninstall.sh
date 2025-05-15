@@ -17,14 +17,12 @@ handle_error() {
 }
 trap handle_error ERR
 
-zenity --info --title="Uninstalling AeNux..." --text="Removing AeNux installation files..."
-
 # Step 1: Remove AeNux-related files
 echo "[*] Removing AeNux files..."
-rm -rf "$HOME/cutefishaep/AeNux"
-rm -f "$HOME/Desktop/AeNux.desktop"
-rm -f "$HOME/.local/share/applications/AeNux.desktop"
-rm -f "$HOME/.local/share/icons/aenux.png"
+sudo rm -rf $HOME/cutefishaep
+sudo rm -f "$HOME/Desktop/AeNux.desktop"
+sudo rm -f "$HOME/.local/share/applications/AeNux.desktop"
+sudo rm -f "$HOME/.local/share/icons/aenux.png"
 
 # Step 2: Ask if user wants to remove Wine & Winetricks completely
 zenity --question --title="Remove Wine & Winetricks?" \
@@ -39,7 +37,7 @@ if [[ $? -eq 0 ]]; then
 
   # Remove wine config and keys
   echo "[*] Cleaning Wine-related configs..."
-  rm -rf "$HOME/.wine"
+  sudo rm -rf "$HOME/.wine"
   sudo rm -rf /etc/apt/keyrings
   sudo rm -f /etc/apt/sources.list.d/winehq-*.sources
 
