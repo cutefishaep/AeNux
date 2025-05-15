@@ -121,16 +121,16 @@ cp -f System32/msxml3.dll ~/.wine/drive_c/windows/system32/msxml3r.dll
 wine reg add "HKCU\\Software\\Wine\\DllOverrides" /v msxml3 /d native,builtin /f
 
 # Step 7: Download or Select Ae2024.zip
-ACTION=$(zenity --list --title="Select .zip File or Download" \
+ACTION=$(zenity --list --title="Install AeNux" \
   --column="Action" \
-  "Download Ae2024.zip" \
-  "Select .zip file from your system" \
+  "Download from huggingface server" \
+  "Manually install zip file" \
   --height=300 --width=400)
 
-if [[ "$ACTION" == "Download Ae2024.zip" ]]; then
+if [[ "$ACTION" == "Download from huggingface server" ]]; then
   echo "[*] Downloading Ae2024.zip..."
   wget -O "2024.zip" "https://huggingface.co/cutefishae/AeNux-model/resolve/main/2024.zip"
-elif [[ "$ACTION" == "Select .zip file from your system" ]]; then
+elif [[ "$ACTION" == "Manually install zip file" ]]; then
   ZIP_FILE=$(zenity --file-selection --title="Select Ae2024.zip" --file-filter="*.zip")
   if [[ -z "$ZIP_FILE" ]]; then
     zenity --error --text="No file selected. Exiting."
