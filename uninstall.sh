@@ -9,75 +9,52 @@ if ! command -v zenity &>/dev/null; then
   sudo apt update && sudo apt install zenity -y
 fi
 
-# Error handler with zenity dialog
+# Error handler
 handle_error() {
   zenity --error --title="Uninstallation Failed" \
     --text="An error occurred during uninstallation.\nCheck log at: $LOGFILE"
   exit 1
 }
-
 trap handle_error ERR
 
-# Step 1: Remove AeNux files
+zenity --info --title="Uninstalling AeNux..." --text="Removing AeNux installation files..."
+
+# Step 1: Remove AeNux-related files
 echo "[*] Removing AeNux files..."
-rm -rf "$HOME/.wine/drive_c/Program Files/Adobe/Adobe After Effects 2024"
-rm -rf "$HOME/.wine/drive_c/Program Files/Adobe/Common/Plug-ins/7.0/MediaCore"
-rm -rf ~/.local/share/icons/aenux.png
+rm -rf "$HOME/cutefishaep/AeNux"
 rm -f "$HOME/Desktop/AeNux.desktop"
 rm -f "$HOME/.local/share/applications/AeNux.desktop"
+rm -f "$HOME/.local/share/icons/aenux.png"
 
-# Step 2: Check if Wine is installed
-echo "[*] Checking if Wine is installed..."
-
-if ! dpkg-query -l | grep -q 'winehq'; then
-  echo "[*] Wine is already uninstalled. Skipping Wine removal."
-else
-  # Step 3: Remove Wine and Winetricks
-  echo "[*] Wine found. Proceeding to remove Wine and Winetricks..."
-  sudo apt-get purge --auto-remove winehq-stable winehq-* winetricks -y
-fi
-
-# Step 4: Clean up Wine-related directories
-echo "[*] Cleaning up Wine directories..."
-rm -rf "$HOME/.wine"
-sudo rm -rf /etc/apt/keyrings
-sudo rm -f /etc/apt/sources.list.d/winehq-*.sources
-
-# Step 5: Remove i386 architecture if no packages depend on it
-echo "[*] Checking for i386 packages..."
-i386_packages=$(dpkg --get-selections | grep :i386)
-
-if [ -z "$i386_packages" ]; then
-  echo "[*] No i386 packages found. Proceeding to remove i386 architecture..."
-  sudo dpkg --remove-architecture i386
-else
-  echo "[!] Warning: Some i386 packages are still installed. Please remove them manually."
-fi
-
-# Step 6: Remove Wine repository and package list
-sudo rm -f /etc/apt/sources.list.d/winehq-*.sources
-
-# Step 7: Clean up apt cache
-echo "[*] Cleaning up apt cache..."
-sudo apt-get clean
-sudo apt-get autoremove -y
-
-# Step 8: Ask if user wants to remove Wine and Winetricks directories
-zenity --question --title="Remove Wine and Winetricks?" \
-  --text="Do you want to remove Wine, Winetricks, and their directories?" \
+# Step 2: Ask if user wants to remove Wine & Winetricks completely
+zenity --question --title="Remove Wine & Winetricks?" \
+  --text="Do you want to completely remove Wine, Winetricks, and related configurations?\n(This may affect other Wine applications)" \
   --width=400
 
 if [[ $? -eq 0 ]]; then
-  # Step 9: Remove Wine and Winetricks directories
-  echo "[*] Removing Wine and Winetricks directories..."
-  rm -rf ~/.wine
-  rm -rf /etc/apt/keyrings
+  echo "[*] Removing Wine and Winetricks..."
+
+  # Purge Wine and Winetricks
+  sudo apt-get purge --auto-remove winehq-* winetricks -y
+
+  # Remove wine config and keys
+  echo "[*] Cleaning Wine-related configs..."
+  rm -rf "$HOME/.wine"
+  sudo rm -rf /etc/apt/keyrings
+  sudo rm -f /etc/apt/sources.list.d/winehq-*.sources
+
+  # Optional: Remove i386 if nothing depends on it
+  if ! dpkg --get-selections | grep -q ":i386"; then
+    echo "[*] No i386 packages found. Removing i386 architecture..."
+    sudo dpkg --remove-architecture i386
+  else
+    echo "[!] i386 packages still present. Skipping architecture removal."
+  fi
+
+  sudo apt-get autoremove -y
+  sudo apt-get clean
 fi
 
-# Step 10: Finish uninstallation
-zenity --info --title="Uninstallation Complete" \
-  --text="AeNux has been removed successfully!\nWine and Winetricks have been removed.\nYou can now close this window."
-
-# Exit the script
+# Done
+echo "Done uninstalling!"
 exit 0
-
