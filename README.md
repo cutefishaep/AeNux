@@ -1,4 +1,4 @@
-# AeNux v0.5 (beta)
+# AeNux v1 (Kinda Stable)
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/cutefishaep/AeNux/refs/heads/main/LOGO.png" alt="AeNux Logo" width="200"/><br>
@@ -28,7 +28,6 @@
 
 - ❌ **OpenCL / Hardware acceleration** does not work.
 - ⚠️ Some UI elements (e.g., Flow Plugin) may **flicker**.
-- ⚠️ **FX Console** works inconsistently — it is **recommended to install FX Console before other plugins**.
 - 💥 May **crash** if After Effects consumes all available RAM.
 - ❓ Please submit issue if you find some bugs!
 
