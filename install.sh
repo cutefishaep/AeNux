@@ -128,10 +128,10 @@ ACTION=$(zenity --list --title="Install AeNux" \
   --height=300 --width=400)
 
 if [[ "$ACTION" == "Download from huggingface server" ]]; then
-  echo "[*] Downloading Ae2024.zip..."
+  echo "[*] Downloading AeNux"
   wget -O "2024.zip" "https://huggingface.co/cutefishae/AeNux-model/resolve/main/2024.zip"
 elif [[ "$ACTION" == "Manually install zip file" ]]; then
-  ZIP_FILE=$(zenity --file-selection --title="Select Ae2024.zip" --file-filter="*.zip")
+  ZIP_FILE=$(zenity --file-selection --title="Select AeNux file" --file-filter="*.zip")
   if [[ -z "$ZIP_FILE" ]]; then
     zenity --error --text="No file selected. Exiting."
     exit 1
