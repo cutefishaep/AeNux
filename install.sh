@@ -86,7 +86,7 @@ else
     "https://dl.winehq.org/wine-builds/$origin/dists/$distro/winehq-$distro.sources"
   sudo apt update
   sudo apt install --install-recommends winehq-stable -y
-  sudo apt install cabextract
+  sudo apt install cabextract -y
 
   #Install winetricks manually
 git clone https://github.com/Winetricks/winetricks
