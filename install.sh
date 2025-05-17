@@ -89,10 +89,12 @@ else
   sudo apt install cabextract
 
   #Install winetricks manually
-  git clone https://github.com/Winetricks/winetricks
-  cd winetricks/src
-  chmod +x winetricks
-  sudo mv winetricks /usr/local/bin/
+git clone https://github.com/Winetricks/winetricks
+cd winetricks/src
+chmod +x winetricks
+sudo mv winetricks /usr/local/bin/
+cd ../.. 
+sudo rm -rf winetricks  
   
   
 fi
