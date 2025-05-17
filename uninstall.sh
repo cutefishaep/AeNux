@@ -33,7 +33,8 @@ if [[ $? -eq 0 ]]; then
   echo "[*] Removing Wine and Winetricks..."
 
   # Purge Wine and Winetricks
-  sudo apt-get purge --auto-remove winehq-* winetricks -y
+  sudo apt-get purge --auto-remove winehq-* -y
+  sudo rm -f /usr/local/bin/winetricks
 
   # Remove wine config and keys
   echo "[*] Cleaning Wine-related configs..."
