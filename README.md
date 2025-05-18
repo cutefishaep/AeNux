@@ -1,4 +1,4 @@
-# AeNux v1.5
+# AeNux v1.7
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/cutefishaep/AeNux/refs/heads/main/LOGO.png" alt="AeNux Logo" width="200"/><br>
@@ -81,6 +81,14 @@ THANKS A LOT FOR MattKC FOR MAKING THIS PROJECT POSSIBLE 🤩
 
 mattkc forum :
 https://forum.mattkc.com/viewtopic.php?t=337
+
+---
+
+## TODO 
+
+- Make the Hardware Acceleration Work
+- Make instalation for additional plugin
+- Building into .deb file
 
 ---
 
