@@ -28,7 +28,7 @@
 
 - ❌ **OpenCL / Hardware acceleration** does not work.
 - ⚠️ Some UI elements (e.g., Flow Plugin) may **flicker**.
-- 💥 May **crash** if After Effects consumes all available RAM.
+- 💥 May **crash** if After Effects consumes all available RAM. [EXCEPT DEBIAN]
 - ❓ Please submit issue if you find some bugs!
 
 ---
