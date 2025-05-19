@@ -169,9 +169,9 @@ rm -rf "Ae2024"
 mkdir -p ~/.local/share/icons/
 cp -f aenux.png ~/.local/share/icons/
 
-# Step 11: Create desktop shortcut
-desktop_file="$HOME/Desktop/AeNux.desktop"
-cat > "$desktop_file" <<EOL
+# Step 12: Application menu entry
+app_menu="$HOME/.local/share/applications/AeNux.desktop"
+cat > "$app_menu" <<EOL
 [Desktop Entry]
 Name=AeNux
 Comment=Run AeNux using Wine
@@ -182,12 +182,8 @@ Icon=aenux
 Terminal=false
 EOL
 
-chmod +x "$desktop_file"
-
-# Step 12: Application menu entry
-app_menu="$HOME/.local/share/applications/AeNux.desktop"
-cp "$desktop_file" "$app_menu"
 chmod +x "$app_menu"
+
 
 # Step 13: Done
 zenity --info --title="Installation Complete" \
