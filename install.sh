@@ -166,8 +166,8 @@ cp -rf "Ae2024/Support Files/"* "$ae_dir/"
 rm -rf "Ae2024"
 
 # Step 10: Icon setup
-mkdir -p "$HOME/.local/share/icons/aenux"
-cp -f aenux.png "$HOME/.local/share/icons/aenux/"
+mkdir -p ~/.local/share/icons/
+cp -f aenux.png ~/.local/share/icons/
 
 # Step 12: Application menu entry
 app_menu="$HOME/.local/share/applications/AeNux.desktop"
