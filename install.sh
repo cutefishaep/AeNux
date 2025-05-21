@@ -1,9 +1,5 @@
 #!/bin/bash
 
-LOGFILE="aenux-setup.log"
-exec > >(tee -a "$LOGFILE") 2>&1
-
-
 # Ensure zenity is installed
 if ! command -v zenity &>/dev/null; then
   echo "[*] Installing zenity..."
