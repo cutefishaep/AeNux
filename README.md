@@ -1,4 +1,4 @@
-# AeNux v1.7
+# AeNux v1.8
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/cutefishaep/AeNux/refs/heads/main/LOGO.png" alt="AeNux Logo" width="200"/><br>
