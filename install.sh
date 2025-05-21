@@ -1,6 +1,6 @@
 #!/bin/bash
 
-LOGFILE="$HOME/aenux-setup.log"
+LOGFILE="aenux-setup.log"
 exec > >(tee -a "$LOGFILE") 2>&1
 
 
