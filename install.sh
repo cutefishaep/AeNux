@@ -84,26 +84,23 @@ else
   echo "[*] Adding WineHQ source for $distro..."
   sudo wget -NP /etc/apt/sources.list.d/ \
     "https://dl.winehq.org/wine-builds/$origin/dists/$distro/winehq-$distro.sources"
-  sudo apt update
-  sudo apt install --install-recommends winehq-stable -y
+  sudo apt update 
+sudo apt install --install-recommends winehq-stable -y
   sudo apt install cabextract -y
-
   #Install winetricks manually
-git clone https://github.com/Winetricks/winetricks
-cd winetricks/src
-chmod +x winetricks
-sudo mv winetricks /usr/local/bin/
-cd ../.. 
-sudo rm -rf winetricks  
   
   
 fi
 
 # Step 2: Check if Winetricks is installed
 if ! command -v winetricks &>/dev/null; then
-  zenity --error --title="Winetricks Not Found" \
-    --text="Winetricks is required for this setup but is not installed.\nPlease install Winetricks manually and rerun the script."
-  exit 1
+git clone https://github.com/Winetricks/winetricks
+cd winetricks/src
+chmod +x winetricks
+sudo mv winetricks /usr/local/bin/
+cd ../.. 
+sudo rm -rf winetricks  
+
 else
   echo "[*] Winetricks is already installed. Skipping Winetricks installation."
 fi
@@ -114,6 +111,7 @@ echo "[*] Wine version: $wine_version"
 
 # Step 4: Setup Winetricks packages
 echo "[*] Installing DXVK, Core Fonts, and GDIPLUS..."
+ ./change-theme.sh
 winetricks -q dxvk corefonts gdiplus fontsmooth=rgb
 
 # Step 5: Visual C++ Redists
