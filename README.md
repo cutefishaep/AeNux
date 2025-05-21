@@ -89,6 +89,7 @@ https://forum.mattkc.com/viewtopic.php?t=337
 - Make the Hardware Acceleration Work
 - Make instalation for additional plugin
 - Building into .deb file
+- Adding "Open With AeNux" on supported file
 
 ---
 
