@@ -1,0 +1,55 @@
+name: Build and Publish DEB Package
+
+on:
+  push:
+    tags:
+      - 'v*'    # Trigger only on version tags
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Set up package directory
+        run: |
+          mkdir -p aenux_${VERSION}/DEBIAN
+          mkdir -p aenux_${VERSION}/usr/local/bin
+          cp install.sh aenux_${VERSION}/usr/local/bin/aenux-install
+          cp uninstall.sh aenux_${VERSION}/usr/local/bin/aenux-uninstall
+
+      - name: Create control file
+        run: |
+          cat <<EOF > aenux_${VERSION}/DEBIAN/control
+          Package: aenux
+          Version: ${VERSION}
+          Section: base
+          Priority: optional
+          Architecture: all
+          Maintainer: cutefishaep
+          Description: A wine configurator for running Ae on linux
+          EOF
+
+      - name: Build DEB package
+        run: |
+          dpkg-deb --build aenux_${VERSION}
+
+      - name: Upload .deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aenux-deb
+          path: aenux_${VERSION}.deb
+
+      - name: Upload release asset
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: aenux_${VERSION}.deb
