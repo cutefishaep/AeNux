@@ -1,9 +1,7 @@
 name: Build and Publish DEB Package
 
 on:
-  push:
-    tags:
-      - 'v*'    # Trigger only on version tags
+  workflow_dispatch:
 
 jobs:
   build:
