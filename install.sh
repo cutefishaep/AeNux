@@ -1,4 +1,4 @@
-#!/bin/bash
+    #!/bin/bash
 
 # Ensure zenity is installed
 if ! command -v zenity &>/dev/null; then
