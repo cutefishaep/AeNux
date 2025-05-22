@@ -81,10 +81,30 @@ else
   sudo wget -NP /etc/apt/sources.list.d/ \
     "https://dl.winehq.org/wine-builds/$origin/dists/$distro/winehq-$distro.sources"
   sudo apt update 
-sudo apt install --install-recommends winehq-stable -y
+  sudo apt install --install-recommends winehq-stable -y
   sudo apt install cabextract -y
-  #Install winetricks manually
   
+#Added shorcut on explorer.exe
+  FAV_DIR="$HOME/.wine/drive_c/users/$(whoami)/Favorites"
+
+# Check if the folder exists and contains at least one directory (excluding . and ..)
+if [ ! -d "$FAV_DIR" ] || [ -z "$(find "$FAV_DIR" -mindepth 1 -maxdepth 1 -type d)" ]; then
+  echo "No folders found in $FAV_DIR, skipping creating shortcut"
+  exit 0
+fi
+
+cd "$FAV_DIR" || exit 1
+
+# Remove if previously exists
+rm -rf Documents Downloads Pictures Videos Music
+
+# Create symlinks to the real Linux folders
+ln -s ~/Documents Documents
+ln -s ~/Downloads Downloads
+ln -s ~/Pictures Pictures
+ln -s ~/Videos Videos
+ln -s ~/Music Music
+
   
 fi
 
