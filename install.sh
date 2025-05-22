@@ -84,30 +84,6 @@ else
   sudo apt install --install-recommends winehq-stable -y
   sudo apt install cabextract -y
   
-#Added shorcut on explorer.exe
-  FAV_DIR="$HOME/.wine/drive_c/users/$(whoami)/Favorites"
-
-# Check if the folder exists and contains at least one directory (excluding . and ..)
-if [ ! -d "$FAV_DIR" ] || [ -z "$(find "$FAV_DIR" -mindepth 1 -maxdepth 1 -type d)" ]; then
-  echo "No folders found in $FAV_DIR, skipping creating shortcut"
-  exit 0
-fi
-
-cd "$FAV_DIR" || exit 1
-
-# Remove if previously exists
-rm -rf Documents Downloads Pictures Videos Music
-
-# Create symlinks to the real Linux folders
-ln -s ~/Documents Documents
-ln -s ~/Downloads Downloads
-ln -s ~/Pictures Pictures
-ln -s ~/Videos Videos
-ln -s ~/Music Music
-
-  
-fi
-
 # Step 2: Check if Winetricks is installed
 if ! command -v winetricks &>/dev/null; then
 git clone https://github.com/Winetricks/winetricks
@@ -137,6 +113,31 @@ if [[ -f "vcr/install_all.bat" ]]; then
 else
   echo "[!] Warning: vcr/install_all.bat not found. Skipping VC Redist install."
 fi
+
+
+# Added shorcut on explorer.exe
+  FAV_DIR="$HOME/.wine/drive_c/users/$(whoami)/Favorites"
+
+# Check if the folder exists and contains at least one directory (excluding . and ..)
+if [ ! -d "$FAV_DIR" ] || [ -z "$(find "$FAV_DIR" -mindepth 1 -maxdepth 1 -type d)" ]; then
+  echo "No folders found in $FAV_DIR, skipping creating shortcut"
+fi
+
+cd "$FAV_DIR"
+
+# Remove if previously exists
+rm -rf Documents Downloads Pictures Videos Music
+
+# Create symlinks to the real Linux folders
+ln -s ~/Documents Documents
+ln -s ~/Downloads Downloads
+ln -s ~/Pictures Pictures
+ln -s ~/Videos Videos
+ln -s ~/Music Music
+
+  
+fi
+
 
 # Step 6: MSXML3 override
 echo "[*] Registering msxml3 override..."
