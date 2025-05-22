@@ -1,4 +1,4 @@
-    #!/bin/bash
+#!/bin/bash
 
 # Ensure zenity is installed
 if ! command -v zenity &>/dev/null; then
@@ -6,7 +6,16 @@ if ! command -v zenity &>/dev/null; then
   sudo apt update && sudo apt install zenity -y
 fi
 
+# Define LOGFILE
+LOGFILE="$HOME/install.log"
 
+# Error handler
+handle_error() {
+  zenity --error --title="Installation Failed" \
+    --text="An error occurred during setup.\nCheck log at: $LOGFILE"
+  exit 1
+}
+trap handle_error ERR
 
 # Step 0: Check if AeNux is already installed
 if [[ -f "$HOME/.local/share/applications/AeNux.desktop" ]]; then
@@ -30,14 +39,6 @@ if [[ -f "$HOME/.local/share/applications/AeNux.desktop" ]]; then
     fi
   fi
 fi
-
-# Error handler
-handle_error() {
-  zenity --error --title="Installation Failed" \
-    --text="An error occurred during setup.\nCheck log at: $LOGFILE"
-  exit 1
-}
-trap handle_error ERR
 
 # Step 1: Check if Wine is installed
 if command -v wine &>/dev/null; then
@@ -80,19 +81,19 @@ else
   echo "[*] Adding WineHQ source for $distro..."
   sudo wget -NP /etc/apt/sources.list.d/ \
     "https://dl.winehq.org/wine-builds/$origin/dists/$distro/winehq-$distro.sources"
-  sudo apt update 
+  sudo apt update
   sudo apt install --install-recommends winehq-stable -y
   sudo apt install cabextract -y
-  
+fi
+
 # Step 2: Check if Winetricks is installed
 if ! command -v winetricks &>/dev/null; then
-git clone https://github.com/Winetricks/winetricks
-cd winetricks/src
-chmod +x winetricks
-sudo mv winetricks /usr/local/bin/
-cd ../.. 
-sudo rm -rf winetricks  
-
+  git clone https://github.com/Winetricks/winetricks
+  cd winetricks/src
+  chmod +x winetricks
+  sudo mv winetricks /usr/local/bin/
+  cd ../..
+  sudo rm -rf winetricks
 else
   echo "[*] Winetricks is already installed. Skipping Winetricks installation."
 fi
@@ -103,7 +104,7 @@ echo "[*] Wine version: $wine_version"
 
 # Step 4: Setup Winetricks packages
 echo "[*] Installing DXVK, Core Fonts, and GDIPLUS..."
- ./change-theme.sh
+./change-theme.sh
 winetricks -q dxvk corefonts gdiplus fontsmooth=rgb
 
 # Step 5: Visual C++ Redists
@@ -114,30 +115,27 @@ else
   echo "[!] Warning: vcr/install_all.bat not found. Skipping VC Redist install."
 fi
 
+# Set Favorites directory
+FAV_DIR="$HOME/.wine/drive_c/users/$(whoami)/Favorites"
 
-# Added shorcut on explorer.exe
-  FAV_DIR="$HOME/.wine/drive_c/users/$(whoami)/Favorites"
+# Check if the Favorites folder exists
+if [ ! -d "$FAV_DIR" ]; then
+  echo "Folder $FAV_DIR does not exist, skipping creating shortcut"
+else
+  cd "$FAV_DIR" || { echo "Failed to cd to $FAV_DIR,This error appear because of no wine directory detected on your pc (run winecfg and re run this script)"; exit 1; }
 
-# Check if the folder exists and contains at least one directory (excluding . and ..)
-if [ ! -d "$FAV_DIR" ] || [ -z "$(find "$FAV_DIR" -mindepth 1 -maxdepth 1 -type d)" ]; then
-  echo "No folders found in $FAV_DIR, skipping creating shortcut"
+  # Remove if previously exists
+  rm -rf Documents Downloads Pictures Videos Music
+
+  # Create symlinks to the real Linux folders
+  ln -s ~/Documents Documents
+  ln -s ~/Downloads Downloads
+  ln -s ~/Pictures Pictures
+  ln -s ~/Videos Videos
+  ln -s ~/Music Music
+
+  wineserver -k
 fi
-
-cd "$FAV_DIR"
-
-# Remove if previously exists
-rm -rf Documents Downloads Pictures Videos Music
-
-# Create symlinks to the real Linux folders
-ln -s ~/Documents Documents
-ln -s ~/Downloads Downloads
-ln -s ~/Pictures Pictures
-ln -s ~/Videos Videos
-ln -s ~/Music Music
-
-  
-fi
-
 
 # Step 6: MSXML3 override
 echo "[*] Registering msxml3 override..."
@@ -198,7 +196,6 @@ Terminal=false
 EOL
 
 chmod +x "$app_menu"
-
 
 # Step 13: Done
 zenity --info --title="Installation Complete" \
