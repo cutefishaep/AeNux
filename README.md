@@ -51,6 +51,16 @@ Clone the repository and run the installer:
 chmod +x install.sh && ./install.sh
 ```
 
+## ⚙️ Install Plugin
+
+The plugin directory is on 
+
+```bash
+/home/<your user>/cutefishaep/AeNux/Plug-ins
+```
+
+Or you can install all of it's plugin by running plugin.sh on [THIS REPOSITORY](https://github.com/cutefishaep/AeNux-plugin)
+
 
 ## ⚙️ Uninstall 
 
