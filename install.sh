@@ -115,6 +115,8 @@ else
   echo "[!] Warning: vcr/install_all.bat not found. Skipping VC Redist install."
 fi
 
+#!/bin/bash
+
 # Set Favorites directory
 FAV_DIR="$HOME/.wine/drive_c/users/$(whoami)/Favorites"
 
@@ -122,17 +124,15 @@ FAV_DIR="$HOME/.wine/drive_c/users/$(whoami)/Favorites"
 if [ ! -d "$FAV_DIR" ]; then
   echo "Folder $FAV_DIR does not exist, skipping creating shortcut"
 else
-  cd "$FAV_DIR" || { echo "Failed to cd to $FAV_DIR,This error appear because of no wine directory detected on your pc (run winecfg and re run this script)"; exit 1; }
-
   # Remove if previously exists
-  rm -rf Documents Downloads Pictures Videos Music
+  rm -rf "$FAV_DIR/Documents" "$FAV_DIR/Downloads" "$FAV_DIR/Pictures" "$FAV_DIR/Videos" "$FAV_DIR/Music"
 
-  # Create symlinks to the real Linux folders
-  ln -s ~/Documents Documents
-  ln -s ~/Downloads Downloads
-  ln -s ~/Pictures Pictures
-  ln -s ~/Videos Videos
-  ln -s ~/Music Music
+  # Create symlinks to the real Linux folders using absolute paths
+  ln -sf ~/Documents "$FAV_DIR/Documents"
+  ln -sf ~/Downloads "$FAV_DIR/Downloads"
+  ln -sf ~/Pictures "$FAV_DIR/Pictures"
+  ln -sf ~/Videos "$FAV_DIR/Videos"
+  ln -sf ~/Music "$FAV_DIR/Music"
 
   wineserver -k
 fi
