@@ -133,6 +133,7 @@ else
   ln -sf ~/Pictures "$FAV_DIR/Pictures"
   ln -sf ~/Videos "$FAV_DIR/Videos"
   ln -sf ~/Music "$FAV_DIR/Music"
+  ln -sf ~/cutefishaep/AeNux "$FAV_DIR"
 
   wineserver -k
 fi
