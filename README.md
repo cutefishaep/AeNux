@@ -48,7 +48,8 @@
    ```bash
    git clone https://github.com/cutefishaep/AeNux
    cd AeNux
-   venv/bin/python run_qt6.py
+   chmod +X run.sh
+   ./run.sh
    ```
    *Ensure you're within the cloned repository directory*
 
