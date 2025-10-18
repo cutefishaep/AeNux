@@ -1,0 +1,11 @@
+#!/bin/bash
+set -e
+
+# Kill any running AeNux processes
+pkill -f "run_qt6.py" || true
+pkill -f "AfterFX.exe" || true
+
+# Remove symlink
+rm -f /usr/local/bin/aenux
+
+exit 0

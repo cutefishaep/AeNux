@@ -1,0 +1,23 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_install:
+	# Install application files
+	mkdir -p debian/aenux/usr/share/aenux
+	cp -r . debian/aenux/usr/share/aenux/
+	rm -rf debian/aenux/usr/share/aenux/.git
+	rm -rf debian/aenux/usr/share/aenux/.github
+	rm -rf debian/aenux/usr/share/aenux/debian
+	rm -rf debian/aenux/usr/share/aenux/aenux-deb
+	rm -rf debian/aenux/usr/share/aenux/aenux.AppDir
+	chmod +x debian/aenux/usr/share/aenux/launch_aenux.sh
+	
+	# Create virtual environment
+	python3 -m venv debian/aenux/usr/share/aenux/venv
+	debian/aenux/usr/share/aenux/venv/bin/pip install --upgrade pip
+	debian/aenux/usr/share/aenux/venv/bin/pip install PyQt6==6.9.1 pyqt6-qt6==6.9.2 pyqt6-sip==13.10.2
+
+override_dh_auto_build:
+	# No build step needed for Python application

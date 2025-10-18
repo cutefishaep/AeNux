@@ -48,6 +48,10 @@
    ```bash
    git clone https://github.com/cutefishaep/AeNux
    cd AeNux
+   ./launch_aenux.sh
+   ```
+   *Use the launcher script for best compatibility, or alternatively:*
+   ```bash
    venv/bin/python run_qt6.py
    ```
    *Ensure you're within the cloned repository directory*

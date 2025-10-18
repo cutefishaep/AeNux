@@ -1,0 +1,25 @@
+#!/bin/bash
+set -e
+
+# Update desktop database
+if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database /usr/share/applications
+fi
+
+# Update icon cache
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+    gtk-update-icon-cache -f -t /usr/share/icons/hicolor
+fi
+
+# Create symlink for easy access
+ln -sf /usr/share/aenux/launch_aenux.sh /usr/local/bin/aenux
+
+echo "AeNux installed successfully!"
+echo "You can now find it in your applications menu or run 'aenux' from terminal."
+echo ""
+echo "To get started:"
+echo "1. Install Wine if you haven't already"
+echo "2. Run 'aenux' from terminal or find it in your applications menu"
+echo "3. Click 'Install' to download and set up AeNux"
+
+exit 0

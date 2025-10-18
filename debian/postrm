@@ -1,0 +1,22 @@
+#!/bin/bash
+set -e
+
+case "$1" in
+    remove|purge)
+        # Clean up user data if purging
+        if [ "$1" = "purge" ]; then
+            # Remove user configuration (optional)
+            # rm -rf /home/*/.config/aenux
+            echo "AeNux configuration preserved. Remove manually if needed."
+        fi
+        ;;
+    upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+        # Do nothing on upgrade
+        ;;
+    *)
+        echo "postrm called with unknown argument \`$1'" >&2
+        exit 1
+        ;;
+esac
+
+exit 0
