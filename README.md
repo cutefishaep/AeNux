@@ -66,8 +66,7 @@ The plugin directory is located at:
 
 **Free Plugin**: Install all most editor used plugins:
 ```bash
-# From the AeNux-plugin repository
-./plugin.sh
+Not available for now, please wait for the next update!
 ```
 [🔗 AeNux Plugin Repository](https://github.com/cutefishaep/AeNux-plugin)
 
