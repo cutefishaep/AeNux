@@ -5,7 +5,7 @@ import json
 import shutil
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QComboBox, QTextEdit, QCheckBox, QMessageBox, QProgressBar
+    QComboBox, QTextEdit, QCheckBox, QMessageBox, QProgressBar, QFileDialog
 )
 from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer
@@ -23,47 +23,66 @@ class InstallThread(QThread):
     finished_signal = pyqtSignal(bool)
     cancelled = pyqtSignal()
 
-    def __init__(self):
+    def __init__(self, zip_file_path=None):
         super().__init__()
         self._is_cancelled = False
+        self.zip_file_path = zip_file_path
+        self.is_local_file = zip_file_path is not None
 
     def cancel(self):
         self._is_cancelled = True
 
     def run(self):
         try:
-            # Check if wget is available
-            if not shutil.which('wget'):
-                self.log_signal.emit("[ERROR] wget is not installed. Please install wget first.")
-                self.finished_signal.emit(False)
-                return
+            if self.is_local_file:
+                # Installation from local file
+                self.log_signal.emit("[INFO] Installing AeNux from local file...")
+                self.progress_signal.emit(10)
+                
+                if not os.path.exists(self.zip_file_path):
+                    self.log_signal.emit(f"[ERROR] Local file not found: {self.zip_file_path}")
+                    self.finished_signal.emit(False)
+                    return
+                
+                # Copy local file to current directory as 2024.zip
+                self.log_signal.emit("[DEBUG] Copying local file...")
+                shutil.copy2(self.zip_file_path, '2024.zip')
+                
+            else:
+                # Installation from download
+                # Check if wget is available
+                if not shutil.which('wget'):
+                    self.log_signal.emit("[ERROR] wget is not installed. Please install wget first.")
+                    self.finished_signal.emit(False)
+                    return
 
-            self.log_signal.emit("[INFO] Installing AeNux...")
-            self.progress_signal.emit(10)
+                self.log_signal.emit("[INFO] Installing AeNux from download...")
+                self.progress_signal.emit(10)
+                
+                if self._is_cancelled:
+                    self._cleanup_partial_install()
+                    self.cancelled.emit()
+                    return
+                
+                # Download the file
+                self.log_signal.emit("[DEBUG] Downloading AeNux package, around 1.3gb...")
+                result = subprocess.run([
+                    'wget', '-O', '2024.zip', 
+                    'https://huggingface.co/cutefishae/AeNux-model/resolve/main/2024.zip'
+                ], capture_output=True, text=True)
+                
+                if self._is_cancelled:
+                    self._cleanup_partial_install()
+                    self.cancelled.emit()
+                    return
+                
+                if result.returncode != 0:
+                    self.log_signal.emit(f"[ERROR] Download failed: {result.stderr}")
+                    self.finished_signal.emit(False)
+                    return
+                
+                self.log_signal.emit("[DEBUG] Download completed successfully")
             
-            if self._is_cancelled:
-                self._cleanup_partial_install()
-                self.cancelled.emit()
-                return
-            
-            # Download the file
-            self.log_signal.emit("[DEBUG] Downloading AeNux package, around 1.3gb...")
-            result = subprocess.run([
-                'wget', '-O', '2024.zip', 
-                'https://huggingface.co/cutefishae/AeNux-model/resolve/main/2024.zip'
-            ], capture_output=True, text=True)
-            
-            if self._is_cancelled:
-                self._cleanup_partial_install()
-                self.cancelled.emit()
-                return
-            
-            if result.returncode != 0:
-                self.log_signal.emit(f"[ERROR] Download failed: {result.stderr}")
-                self.finished_signal.emit(False)
-                return
-            
-            self.log_signal.emit("[DEBUG] Download completed successfully")
             self.progress_signal.emit(40)
             
             if self._is_cancelled:
@@ -511,6 +530,37 @@ class AeNuxApp(QWidget):
         self._apply_saved_config()
         self._check_installation_status()
 
+    def _show_install_method_dialog(self):
+        """Show dialog to choose installation method"""
+        dialog = QMessageBox(self)
+        dialog.setWindowTitle("Installation Method")
+        dialog.setText("How would you like to install AeNux?")
+        
+        download_btn = dialog.addButton("Download", QMessageBox.ButtonRole.AcceptRole)
+        choose_file_btn = dialog.addButton("Choose Local File", QMessageBox.ButtonRole.ActionRole)
+        cancel_btn = dialog.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
+        
+        dialog.exec()
+        
+        clicked_button = dialog.clickedButton()
+        
+        if clicked_button == download_btn:
+            return "download"
+        elif clicked_button == choose_file_btn:
+            return "local_file"
+        else:
+            return "cancel"
+
+    def _choose_local_zip_file(self):
+        """Open file dialog to choose local zip file"""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select AeNux Zip File",
+            "",
+            "Zip Files (*.zip);;All Files (*)"
+        )
+        return file_path
+
     def _disable_buttons_temporarily(self, duration=1500):
         """Nonaktifkan sementara semua tombol utama"""
         if self.buttons_disabled:
@@ -709,19 +759,40 @@ Categories=AudioVideo;Video;
         )
         
         if reply == QMessageBox.StandardButton.Yes:
-            self._disable_buttons_temporarily(500)  # Cooldown pendek untuk feedback
-            self.install_button.setEnabled(False)
-            self.install_button.setText("Installing...")
-            self.progress_bar.setVisible(True)
-            self.cancel_button.setVisible(True)
-            self.progress_bar.setValue(0)
+            # Show installation method dialog
+            method = self._show_install_method_dialog()
             
-            self.install_thread = InstallThread()
-            self.install_thread.log_signal.connect(self.logs_box.append)
-            self.install_thread.progress_signal.connect(self.progress_bar.setValue)
-            self.install_thread.finished_signal.connect(self._installation_finished)
-            self.install_thread.cancelled.connect(self._installation_cancelled)
-            self.install_thread.start()
+            if method == "cancel":
+                self.logs_box.append("[USER] Installation cancelled.")
+                return
+            elif method == "download":
+                self._start_installation()
+            elif method == "local_file":
+                zip_file_path = self._choose_local_zip_file()
+                if zip_file_path:
+                    self._start_installation(zip_file_path)
+                else:
+                    self.logs_box.append("[USER] No file selected. Installation cancelled.")
+                    return
+
+    def _start_installation(self, zip_file_path=None):
+        """Start the installation process with optional local file"""
+        self._disable_buttons_temporarily(500)
+        self.install_button.setEnabled(False)
+        self.install_button.setText("Installing...")
+        self.progress_bar.setVisible(True)
+        self.cancel_button.setVisible(True)
+        self.progress_bar.setValue(0)
+        
+        if zip_file_path:
+            self.logs_box.append(f"[INFO] Using local file: {zip_file_path}")
+        
+        self.install_thread = InstallThread(zip_file_path)
+        self.install_thread.log_signal.connect(self.logs_box.append)
+        self.install_thread.progress_signal.connect(self.progress_bar.setValue)
+        self.install_thread.finished_signal.connect(self._installation_finished)
+        self.install_thread.cancelled.connect(self._installation_cancelled)
+        self.install_thread.start()
 
     def _uninstall_aenux(self):
         """Uninstall AeNux - FIXED: Only remove AeNux folder, not entire cutefishaep"""
