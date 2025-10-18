@@ -12,9 +12,10 @@ from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer
 
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
-AE_NUX_DIR = os.path.expanduser('~/cutefishaep/AeNux')
+AE_NUX_DIR = os.path.expanduser('~/cutefishaep/AE_NUX_DIR')
 PLUGIN_DIR = os.path.join(AE_NUX_DIR, "Plug-ins")
 PRESET_DIR = os.path.expanduser('~/Documents/Adobe/After Effects 2024/User Presets')
+WINE_PREFIX_DIR = os.path.join(os.path.dirname(__file__), "aenux", "wineprefix")
 
 
 class InstallThread(QThread):
@@ -410,7 +411,7 @@ class PatchThread(QThread):
 class AeNuxApp(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("AeNux")
+        self.setWindowTitle("AeNux Halloween Edition")
         self.resize(520, 350)
         self.config = self._load_config()
         self.install_thread = None
@@ -487,10 +488,8 @@ class AeNuxApp(QWidget):
         root.addLayout(runner_row)
 
         # Checkboxes
-        self.umu_checkbox = QCheckBox("Use Umu Launcher")
         self.patch_checkbox = QCheckBox("Apply AeNux Patch")
         cb_row = QHBoxLayout()
-        cb_row.addWidget(self.umu_checkbox)
         cb_row.addWidget(self.patch_checkbox)
         root.addLayout(cb_row)
 
@@ -508,7 +507,8 @@ class AeNuxApp(QWidget):
         # Folders
         folder_row = QHBoxLayout()
         self.folder_buttons = []
-        for name in ["Runner", "Plugin", "Preset", "AeNux"]:
+        # Mengubah "AeNux" menjadi "Wineprefix"
+        for name in ["Runner", "Plugin", "Preset", "Wineprefix"]:
             btn = QPushButton(f"{name} Folder")
             btn.clicked.connect(lambda checked, n=name.lower(): self._open_folder(n))
             folder_row.addWidget(btn)
@@ -517,18 +517,29 @@ class AeNuxApp(QWidget):
         root.addLayout(folder_row)
 
         # Footer
-        footer = QLabel('Made with ❤️ by cutefishaep')
+        footer = QLabel('Made with 🎃 by cutefishaep')
         footer.setAlignment(Qt.AlignmentFlag.AlignCenter)
         root.addWidget(footer)
 
         # populate and apply config
         self._populate_runner_dropdown()
         self.runner_dropdown.currentIndexChanged.connect(self._runner_changed)
-        self.umu_checkbox.stateChanged.connect(self._umu_checkbox_changed)
         self.patch_checkbox.stateChanged.connect(self._patch_checkbox_changed)
 
         self._apply_saved_config()
         self._check_installation_status()
+        self._check_runner_support()
+
+    def _check_runner_support(self):
+        """Check if current runner is supported (non-Proton)"""
+        runner = self.runner_dropdown.currentText()
+        if "proton" in runner.lower():
+            self.btn_run.setEnabled(False)
+            self.btn_kill.setEnabled(False)
+            self.logs_box.append("[ERROR] Proton is not supported!")
+        else:
+            self.btn_run.setEnabled(True)
+            self.btn_kill.setEnabled(True)
 
     def _show_install_method_dialog(self):
         """Show dialog to choose installation method"""
@@ -572,7 +583,6 @@ class AeNuxApp(QWidget):
         
         # Juga nonaktifkan dropdown dan checkbox
         self.runner_dropdown.setEnabled(False)
-        self.umu_checkbox.setEnabled(False)
         self.patch_checkbox.setEnabled(False)
         
         self.button_cooldown_timer.start(duration)
@@ -586,15 +596,14 @@ class AeNuxApp(QWidget):
         # Aktifkan kembali dropdown dan checkbox dengan logika yang benar
         self.runner_dropdown.setEnabled(True)
         self._update_checkbox_states()
+        self._check_runner_support()
 
     def _update_checkbox_states(self):
         """Update status checkbox berdasarkan runner yang dipilih"""
         runner = self.runner_dropdown.currentText()
         if "proton" in runner.lower():
-            self.umu_checkbox.setEnabled(False)
             self.patch_checkbox.setEnabled(False)
         else:
-            self.umu_checkbox.setEnabled(True)
             self.patch_checkbox.setEnabled(True)
 
     def _cancel_operation(self):
@@ -815,9 +824,8 @@ Categories=AudioVideo;Video;
                     self.logs_box.append("[UNINSTALL] AeNux directory removed.")
                 
                 # Remove wineprefix
-                wineprefix_path = os.path.join(os.path.dirname(__file__), "aenux", "wineprefix")
-                if os.path.exists(wineprefix_path):
-                    shutil.rmtree(wineprefix_path)
+                if os.path.exists(WINE_PREFIX_DIR):
+                    shutil.rmtree(WINE_PREFIX_DIR)
                     self.logs_box.append("[UNINSTALL] Wineprefix removed.")
                 
                 # Remove shortcuts
@@ -867,8 +875,7 @@ Categories=AudioVideo;Video;
 
     def _check_wineprefix(self):
         """Check if wineprefix exists"""
-        wineprefix_path = os.path.join(os.path.dirname(__file__), "aenux", "wineprefix")
-        return os.path.exists(wineprefix_path)
+        return os.path.exists(WINE_PREFIX_DIR)
 
     def _run_aenux(self):
         """Run AeNux with optional patch"""
@@ -886,6 +893,11 @@ Categories=AudioVideo;Video;
             QMessageBox.warning(self, "No Runner Selected", "Please select a runner first.")
             return
 
+        # Check if runner is Proton (not supported)
+        if "proton" in runner.lower():
+            QMessageBox.warning(self, "Proton Not Supported", "Proton runners are not supported. Please select a Wine runner.")
+            return
+
         afterfx_path = os.path.join(AE_NUX_DIR, "AfterFX.exe")
         if not os.path.exists(afterfx_path):
             QMessageBox.warning(self, "AfterFX Not Found", f"AfterFX.exe not found at: {afterfx_path}")
@@ -893,10 +905,9 @@ Categories=AudioVideo;Video;
 
         # Get paths
         runner_path = os.path.join(os.path.dirname(__file__), "runner", runner)
-        wineprefix_path = os.path.join(os.path.dirname(__file__), "aenux", "wineprefix")
         
         # Create wineprefix directory if it doesn't exist
-        os.makedirs(wineprefix_path, exist_ok=True)
+        os.makedirs(WINE_PREFIX_DIR, exist_ok=True)
 
         if self.patch_checkbox.isChecked():
             # Apply patch first, then run AfterFX
@@ -906,16 +917,16 @@ Categories=AudioVideo;Video;
             self.cancel_button.setVisible(True)
             self.progress_bar.setValue(0)
             
-            self.patch_thread = PatchThread(runner_path, wineprefix_path)
+            self.patch_thread = PatchThread(runner_path, WINE_PREFIX_DIR)
             self.patch_thread.log_signal.connect(self.logs_box.append)
             self.patch_thread.progress_signal.connect(self.progress_bar.setValue)
-            self.patch_thread.finished_signal.connect(lambda success: self._patch_finished(success, runner_path, wineprefix_path, afterfx_path))
+            self.patch_thread.finished_signal.connect(lambda success: self._patch_finished(success, runner_path, WINE_PREFIX_DIR, afterfx_path))
             self.patch_thread.cancelled.connect(self._patch_cancelled)
             self.patch_thread.start()
         else:
             # Run AfterFX directly without patch
             self._disable_buttons_temporarily(1000)
-            self._run_afterfx(runner_path, wineprefix_path, afterfx_path)
+            self._run_afterfx(runner_path, WINE_PREFIX_DIR, afterfx_path)
 
     def _patch_finished(self, success, runner_path, wineprefix_path, afterfx_path):
         """Handle patch completion"""
@@ -954,20 +965,9 @@ Categories=AudioVideo;Video;
             
             self.logs_box.append(f"[RUN] Starting AfterFX.exe with {os.path.basename(runner_path)}...")
             
-            # Run AfterFX
-            if self.umu_checkbox.isChecked():
-                # Use Umu Launcher if enabled
-                umu_path = os.path.join(os.path.dirname(__file__), "umu", "umu-run.sh")
-                if os.path.exists(umu_path):
-                    subprocess.Popen([umu_path, wine_path, afterfx_path], env=env)
-                    self.logs_box.append("[RUN] AfterFX started with Umu Launcher.")
-                else:
-                    subprocess.Popen([wine_path, afterfx_path], env=env)
-                    self.logs_box.append("[RUN] AfterFX started with Wine (Umu not found).")
-            else:
-                # Direct Wine execution
-                subprocess.Popen([wine_path, afterfx_path], env=env)
-                self.logs_box.append("[RUN] AfterFX started with Wine.")
+            # Direct Wine execution (Umu Launcher removed)
+            subprocess.Popen([wine_path, afterfx_path], env=env)
+            self.logs_box.append("[RUN] AfterFX started with Wine.")
                 
         except Exception as e:
             self.logs_box.append(f"[ERROR] Failed to run AfterFX: {str(e)}")
@@ -999,8 +999,7 @@ Categories=AudioVideo;Video;
 
     def _save_config(self):
         config = {
-            "runner": self.runner_dropdown.currentText(),
-            "use_umu": self.umu_checkbox.isChecked()
+            "runner": self.runner_dropdown.currentText()
         }
         try:
             with open(CONFIG_PATH, "w") as f:
@@ -1013,8 +1012,6 @@ Categories=AudioVideo;Video;
             idx = self.runner_dropdown.findText(self.config["runner"])
             if idx >= 0:
                 self.runner_dropdown.setCurrentIndex(idx)
-        if "use_umu" in self.config:
-            self.umu_checkbox.setChecked(self.config["use_umu"])
 
     def _populate_runner_dropdown(self):
         self.runner_dropdown.clear()
@@ -1031,44 +1028,20 @@ Categories=AudioVideo;Video;
 
     def _runner_changed(self, index):
         runner = self.runner_dropdown.currentText()
-        if runner.lower().startswith("select"):
-            self.umu_checkbox.setEnabled(True)
-            self.umu_checkbox.setChecked(False)
-            self.patch_checkbox.setEnabled(True)
-            return
-
-        if "proton" in runner.lower():
-            # For Proton runners
-            self.umu_checkbox.setChecked(True)
-            self.umu_checkbox.setEnabled(False)
-            self.patch_checkbox.setChecked(False)
-            self.patch_checkbox.setEnabled(False)
-            self.logs_box.append(f"[AUTO] Detected Proton runner → Umu Launcher enabled (required).")
-            self.logs_box.append(f"[INFO] AeNux Patch is not available for Proton runners.")
-        else:
-            # For non-Proton runners
-            self.umu_checkbox.setEnabled(False)
-            self.umu_checkbox.setChecked(False)
-            self.patch_checkbox.setEnabled(True)
-            self.logs_box.append(f"[AUTO] Detected Wine runner → Umu Launcher disabled.")
         
-        self._save_config()
-
-    def _umu_checkbox_changed(self, state):
-        if self.buttons_disabled:
-            return
-            
-        if self.runner_dropdown.currentText().lower().startswith("select"):
-            return
-        if state == Qt.CheckState.Checked.value:
-            if "proton" not in self.runner_dropdown.currentText().lower():
-                QMessageBox.warning(
-                    self, "Warning",
-                    "Only turn this on if you're using Proton GE instead of wine."
-                )
-            self.logs_box.append("[OPTION] Use Umu Launcher: ENABLED")
+        # Check for Proton runner and disable buttons if found
+        if "proton" in runner.lower():
+            self.btn_run.setEnabled(False)
+            self.btn_kill.setEnabled(False)
+            self.patch_checkbox.setEnabled(False)
+            self.logs_box.append("[ERROR] Proton is not supported! Please select a Wine runner.")
         else:
-            self.logs_box.append("[OPTION] Use Umu Launcher: DISABLED")
+            self.btn_run.setEnabled(True)
+            self.btn_kill.setEnabled(True)
+            self.patch_checkbox.setEnabled(True)
+            if not runner.lower().startswith("select"):
+                self.logs_box.append(f"[INFO] Selected runner: {runner}")
+        
         self._save_config()
 
     def _patch_checkbox_changed(self, state):
@@ -1096,6 +1069,7 @@ Categories=AudioVideo;Video;
         self._disable_buttons_temporarily(1000)
         self.logs_box.append("[INFO] Refreshing runner list...")
         self._populate_runner_dropdown()
+        self._check_runner_support()
 
     def _open_folder(self, name):
         if self.buttons_disabled:
@@ -1103,11 +1077,10 @@ Categories=AudioVideo;Video;
             
         self._disable_buttons_temporarily(1000)
         
-        if name == "aenux":
-            path = AE_NUX_DIR
-            if not os.path.exists(path):
-                QMessageBox.warning(self, "Not Installed", "You need to install AeNux first")
-                return
+        if name == "wineprefix":  # Changed from "aenux" to "wineprefix"
+            path = WINE_PREFIX_DIR
+            # Create directory if it doesn't exist
+            os.makedirs(path, exist_ok=True)
         elif name == "plugin":
             path = PLUGIN_DIR
             if not os.path.exists(AE_NUX_DIR):
@@ -1120,7 +1093,7 @@ Categories=AudioVideo;Video;
                 QMessageBox.warning(self, "Not Installed", "You need to install AeNux first")
                 return
             os.makedirs(path, exist_ok=True)
-        else:
+        else:  # "runner"
             path = os.path.join(os.path.dirname(__file__), name)
             os.makedirs(path, exist_ok=True)
         
