@@ -1,4 +1,4 @@
-# AeNux v1.9 - GUI UPDATE
+# AeNux v1.9
 
 <p align="center">
   <img src="https://github.com/cutefishaep/AeNux/blob/main/asset/logo.png" alt="AeNux Logo" width="200"/><br>
