@@ -94,11 +94,6 @@ To obtain the required plugin files:
 - **Telegram:** [@cutefishaep](https://t.me/cutefishaep)
 - **Please DM for plugin availability and usage guidelines**
 
-The plugin directory is located at:
-```bash
-/home/<your-username>/cutefishaep/AeNux/Plug-ins
-```
-
 ### Uninstallation
 
 1. Launch AeNux from your application menu
