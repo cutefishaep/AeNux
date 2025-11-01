@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer
 
-
+# Constants
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
 AE_NUX_DIR = os.path.expanduser('~/cutefishaep/AeNux')
 PLUGIN_DIR = os.path.join(AE_NUX_DIR, "Plug-ins")
@@ -29,14 +29,12 @@ class InstallThread(QThread):
         super().__init__()
         self._is_cancelled = False
         self.zip_file_path = zip_file_path
-        self.is_local_file = zip_file_path is not None
 
     def cancel(self):
         self._is_cancelled = True
 
     def run(self):
         try:
-            # Installation from local file only
             self.log_signal.emit("[INFO] Installing AeNux from local file...")
             self.progress_signal.emit(10)
             
@@ -45,10 +43,9 @@ class InstallThread(QThread):
                 self.finished_signal.emit(False)
                 return
             
-            # Copy local file to current directory as 2024.zip
+            # Copy local file to current directory
             self.log_signal.emit("[DEBUG] Copying local file...")
             shutil.copy2(self.zip_file_path, '2024.zip')
-                
             self.progress_signal.emit(40)
             
             if self._is_cancelled:
@@ -56,11 +53,10 @@ class InstallThread(QThread):
                 self.cancelled.emit()
                 return
             
-            # Unzip the file
+            # Extract files
             self.log_signal.emit("[DEBUG] Extracting files...")
-            result = subprocess.run([
-                'unzip', '-o', '2024.zip', '-d', 'Ae2024'
-            ], capture_output=True, text=True)
+            result = subprocess.run(['unzip', '-o', '2024.zip', '-d', 'Ae2024'], 
+                                  capture_output=True, text=True)
             
             if self._is_cancelled:
                 self._cleanup_partial_install()
@@ -72,11 +68,9 @@ class InstallThread(QThread):
                 self.finished_signal.emit(False)
                 return
             
-            self.log_signal.emit("[DEBUG] Extraction completed")
             self.progress_signal.emit(60)
             
-            # Remove zip file
-            self.log_signal.emit("[DEBUG] Cleaning up temporary files...")
+            # Clean up zip file
             if os.path.exists('2024.zip'):
                 os.remove('2024.zip')
             
@@ -86,7 +80,6 @@ class InstallThread(QThread):
                 return
             
             # Create directory and copy files
-            self.log_signal.emit(f"[DEBUG] Creating directory: {AE_NUX_DIR}")
             os.makedirs(AE_NUX_DIR, exist_ok=True)
             self.progress_signal.emit(70)
             
@@ -94,7 +87,6 @@ class InstallThread(QThread):
             if os.path.exists(source_dir):
                 self.log_signal.emit("[DEBUG] Copying files to installation directory...")
                 
-                # Copy files using Python instead of subprocess for better reliability
                 for item in os.listdir(source_dir):
                     if self._is_cancelled:
                         self._cleanup_partial_install()
@@ -109,10 +101,9 @@ class InstallThread(QThread):
                     else:
                         shutil.copy2(src_path, dst_path)
                 
-                self.log_signal.emit("[DEBUG] Files copied successfully")
                 self.progress_signal.emit(90)
             else:
-                self.log_signal.emit(f"[ERROR] Source directory '{source_dir}' not found after extraction")
+                self.log_signal.emit(f"[ERROR] Source directory '{source_dir}' not found")
                 self.finished_signal.emit(False)
                 return
             
@@ -122,7 +113,6 @@ class InstallThread(QThread):
                 return
             
             # Clean up extraction directory
-            self.log_signal.emit("[DEBUG] Final cleanup...")
             if os.path.exists('Ae2024'):
                 shutil.rmtree('Ae2024')
             
@@ -138,21 +128,18 @@ class InstallThread(QThread):
         """Clean up partially installed files"""
         self.log_signal.emit("[CANCEL] Cleaning up partially installed files...")
         
-        # Remove downloaded zip if exists
-        if os.path.exists('2024.zip'):
-            os.remove('2024.zip')
-            self.log_signal.emit("[CANCEL] Removed downloaded zip file")
+        for file_path in ['2024.zip', 'Ae2024']:
+            if os.path.exists(file_path):
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+                else:
+                    shutil.rmtree(file_path)
+                self.log_signal.emit(f"[CANCEL] Removed {file_path}")
         
-        # Remove extraction directory if exists
-        if os.path.exists('Ae2024'):
-            shutil.rmtree('Ae2024')
-            self.log_signal.emit("[CANCEL] Removed extraction directory")
-        
-        # Remove partially installed AeNux directory if empty or nearly empty
+        # Remove partially installed AeNux directory if empty
         if os.path.exists(AE_NUX_DIR):
             try:
-                contents = os.listdir(AE_NUX_DIR)
-                if len(contents) < 5:  # If very few files, likely incomplete install
+                if len(os.listdir(AE_NUX_DIR)) < 5:
                     shutil.rmtree(AE_NUX_DIR)
                     self.log_signal.emit("[CANCEL] Removed partially installed AeNux directory")
             except OSError:
@@ -187,23 +174,17 @@ class PatchThread(QThread):
             env = os.environ.copy()
             env['WINEPREFIX'] = self.wineprefix_path
             
-            # Get paths to wine and wineserver
+            # Get paths to wine tools
             wine_path = os.path.join(self.runner_path, "bin", "wine")
             wineserver_path = os.path.join(self.runner_path, "bin", "wineserver")
             winetricks_path = os.path.join(os.path.dirname(__file__), "winetricks")
             
             # Check if required tools exist
-            if not os.path.exists(wine_path):
-                self.log_signal.emit(f"[ERROR] Wine not found at: {wine_path}")
-                self.finished_signal.emit(False)
-                return
-                
-            if not os.path.exists(winetricks_path):
-                self.log_signal.emit(f"[ERROR] Winetricks not found at: {winetricks_path}")
+            if not all(os.path.exists(path) for path in [wine_path, winetricks_path]):
+                self.log_signal.emit("[ERROR] Required tools not found")
                 self.finished_signal.emit(False)
                 return
 
-            self.log_signal.emit("[DEBUG] Checking dependencies...")
             self.progress_signal.emit(20)
 
             if self._is_cancelled:
@@ -212,36 +193,28 @@ class PatchThread(QThread):
 
             # Check for cabextract
             if not shutil.which('cabextract'):
-                self.log_signal.emit("[ERROR] cabextract is not installed. Please install cabextract first.")
+                self.log_signal.emit("[ERROR] cabextract is not installed")
                 self.finished_signal.emit(False)
                 return
 
-            # Check if wineprefix already exists
-            if os.path.exists(self.wineprefix_path):
-                self.log_signal.emit("[WARNING] Wineprefix already exists. It will be used as-is.")
-            else:
+            # Initialize wineprefix if needed
+            if not os.path.exists(self.wineprefix_path):
                 self.log_signal.emit("[DEBUG] Initializing wineprefix...")
                 result = subprocess.run([wine_path, "--version"], env=env, capture_output=True, text=True)
                 if result.returncode != 0:
                     self.log_signal.emit(f"[ERROR] Wine initialization failed: {result.stderr}")
                     self.finished_signal.emit(False)
                     return
-                self.log_signal.emit(f"[DEBUG] Wine version: {result.stdout.strip()}")
 
             self.progress_signal.emit(30)
 
-            if self._is_cancelled:
-                self.cancelled.emit()
-                return
-
             # Configure registry and visual settings
-            self.log_signal.emit("[DEBUG] Configuring registry and visual settings...")
-            
-            # Disable Windows theme
-            subprocess.run([wine_path, "reg", "add", "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ThemeManager", 
+            self.log_signal.emit("[DEBUG] Configuring registry settings...")
+            subprocess.run([wine_path, "reg", "add", 
+                          "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ThemeManager", 
                           "/v", "ThemeActive", "/t", "REG_SZ", "/d", "0", "/f"], env=env)
             
-            # Create and import registry file for colors
+            # Import registry file for colors
             reg_file = os.path.join(os.path.dirname(__file__), "aenux-colors.reg")
             reg_content = """Windows Registry Editor Version 5.00
 
@@ -282,8 +255,6 @@ class PatchThread(QThread):
             
             subprocess.run([wine_path, "regedit", reg_file], env=env)
             os.remove(reg_file)
-            
-            # Kill wineserver to apply changes
             subprocess.run([wineserver_path, "-k"], env=env)
             
             self.progress_signal.emit(50)
@@ -292,17 +263,14 @@ class PatchThread(QThread):
                 self.cancelled.emit()
                 return
 
-            # Run winetricks
+            # Run winetricks and VCR install
             self.log_signal.emit("[DEBUG] Running winetricks...")
             subprocess.run([winetricks_path, "-q", "dxvk", "corefonts", "gdiplus", "fontsmooth=rgb"], env=env)
             
-            # Run VCR install if available
             vcr_bat = os.path.join(os.path.dirname(__file__), "asset", "vcr", "install_all.bat")
             if os.path.exists(vcr_bat):
                 self.log_signal.emit("[DEBUG] Installing VCR dependencies...")
                 subprocess.run([wine_path, vcr_bat], env=env)
-            else:
-                self.log_signal.emit("[WARNING] VCR install_all.bat not found, skipping...")
 
             self.progress_signal.emit(70)
 
@@ -311,33 +279,24 @@ class PatchThread(QThread):
                 return
 
             # Create shortcuts to Linux folders
-            self.log_signal.emit("[DEBUG] Creating shortcuts to Linux folders...")
+            self.log_signal.emit("[DEBUG] Creating shortcuts...")
             wine_drive_c = os.path.join(self.wineprefix_path, "drive_c")
             fav_dir = os.path.join(wine_drive_c, "users", "*", "Favorites")
             
-            # Find the first Favorites directory that exists
             fav_paths = glob.glob(fav_dir)
             if fav_paths:
                 target_fav_dir = fav_paths[0]
+                home_dir = os.path.expanduser("~")
                 
-                # Remove existing symlinks
+                # Remove existing symlinks and create new ones
                 for folder in ["Documents", "Downloads", "Pictures", "Videos", "Music"]:
                     link_path = os.path.join(target_fav_dir, folder)
                     if os.path.exists(link_path):
                         os.remove(link_path)
+                    os.symlink(os.path.join(home_dir, folder), link_path)
                 
-                # Create new symlinks
-                home_dir = os.path.expanduser("~")
-                os.symlink(os.path.join(home_dir, "Documents"), os.path.join(target_fav_dir, "Documents"))
-                os.symlink(os.path.join(home_dir, "Downloads"), os.path.join(target_fav_dir, "Downloads"))
-                os.symlink(os.path.join(home_dir, "Pictures"), os.path.join(target_fav_dir, "Pictures"))
-                os.symlink(os.path.join(home_dir, "Videos"), os.path.join(target_fav_dir, "Videos"))
-                os.symlink(os.path.join(home_dir, "Music"), os.path.join(target_fav_dir, "Music"))
                 os.symlink(AE_NUX_DIR, os.path.join(target_fav_dir, "AeNux"))
-                
                 subprocess.run([wineserver_path, "-k"], env=env)
-            else:
-                self.log_signal.emit("[WARNING] Favorites directory not found, skipping shortcuts...")
 
             self.progress_signal.emit(85)
 
@@ -354,14 +313,8 @@ class PatchThread(QThread):
                 if os.path.exists(msxml3_src):
                     shutil.copy2(msxml3_src, os.path.join(system32_dir, "msxml3.dll"))
                     shutil.copy2(msxml3_src, os.path.join(system32_dir, "msxml3r.dll"))
-                    
-                    # Set DLL override
                     subprocess.run([wine_path, "reg", "add", "HKCU\\Software\\Wine\\DllOverrides", 
                                   "/v", "msxml3", "/d", "native,builtin", "/f"], env=env)
-                else:
-                    self.log_signal.emit("[WARNING] msxml3.dll not found in asset/System32/, skipping...")
-            else:
-                self.log_signal.emit("[WARNING] System32 directory not found, skipping DLL override...")
 
             self.progress_signal.emit(100)
             self.log_signal.emit("[INFO] AeNux patch applied successfully!")
@@ -384,7 +337,6 @@ class PluginThread(QThread):
         self.wineprefix_path = wineprefix_path
         self._is_cancelled = False
         self.zip_file_path = zip_file_path
-        self.is_local_file = zip_file_path is not None
 
     def cancel(self):
         self._is_cancelled = True
@@ -401,53 +353,31 @@ class PluginThread(QThread):
             # Set environment variables
             env = os.environ.copy()
             env['WINEPREFIX'] = self.wineprefix_path
-            
-            # Get paths to wine
             wine_path = os.path.join(self.runner_path, "bin", "wine")
             
-            # Check if required tools exist
             if not os.path.exists(wine_path):
-                self.log_signal.emit(f"[ERROR] Wine not found at: {wine_path}")
+                self.log_signal.emit("[ERROR] Wine not found")
                 self.finished_signal.emit(False)
                 return
 
-            # Check if zenity is available
+            # Check for zenity
             if not shutil.which('zenity'):
                 self.log_signal.emit("[INFO] Installing zenity...")
-                result = subprocess.run(['sudo', 'apt', 'install', 'zenity', '-y'], capture_output=True, text=True)
-                if result.returncode == 0:
-                    self.log_signal.emit("[INFO] Zenity installed successfully")
-                else:
-                    self.log_signal.emit("[WARNING] Failed to install zenity")
+                subprocess.run(['sudo', 'apt', 'install', 'zenity', '-y'], capture_output=True)
 
             self.progress_signal.emit(20)
 
-            # Check for required plugin folders
-            REQUIRED_FOLDERS = ["aex", "CEP", "installer", "preset-backup", "scripts"]
+            # Handle plugin zip file
             zip_file_path = 'aenux-require-plugin.zip'
-            
-            # Always use local file for plugins
-            if self.is_local_file:
+            if self.zip_file_path and os.path.exists(self.zip_file_path):
                 self.log_signal.emit(f"[INFO] Using local plugin file: {self.zip_file_path}")
-                if not os.path.exists(self.zip_file_path):
-                    self.log_signal.emit(f"[ERROR] Local file not found: {self.zip_file_path}")
-                    self.finished_signal.emit(False)
-                    return
-                
-                # Copy local file to current directory
                 shutil.copy2(self.zip_file_path, zip_file_path)
             else:
-                # Check if any required folders are missing
-                missing_folders = [folder for folder in REQUIRED_FOLDERS if not os.path.exists(folder)]
-                
-                if missing_folders:
-                    self.log_signal.emit(f"[ERROR] Missing plugin folders: {missing_folders}. Please provide a plugin zip file.")
-                    self.finished_signal.emit(False)
-                    return
-                else:
-                    self.log_signal.emit("[INFO] All required plugin folders found, proceeding...")
+                self.log_signal.emit("[ERROR] No plugin file provided")
+                self.finished_signal.emit(False)
+                return
 
-            # Extract if we have a zip file
+            # Extract plugin package
             if os.path.exists(zip_file_path):
                 self.log_signal.emit("[DEBUG] Extracting plugin package...")
                 result = subprocess.run(['unzip', '-o', zip_file_path], capture_output=True, text=True)
@@ -457,138 +387,18 @@ class PluginThread(QThread):
                     self.finished_signal.emit(False)
                     return
                 
-                self.log_signal.emit("[INFO] Plugin package extracted successfully")
-
-            # Remove zip file
-            if os.path.exists(zip_file_path):
                 os.remove(zip_file_path)
-                self.log_signal.emit("[DEBUG] Removed zip file")
 
             self.progress_signal.emit(50)
 
-            # Set target directories
-            AEX_SRC = "aex"
-            AEX_DST = PLUGIN_DIR
-
-            CEP_SRC = "CEP/flowv1.4.2"
-            CEP_DST = os.path.join(self.wineprefix_path, "drive_c", "Program Files (x86)", "Common Files", "Adobe", "CEP", "extensions")
-
-            PRESET_SRC = "preset-backup/"
-            PRESET_DST = PRESET_DIR
-
-            INSTALLER_SRC = "installer"
-
-            # Install AEX plugins
-            self.log_signal.emit("[INFO] Installing AEX plugins...")
-            if os.path.exists(AEX_SRC) and os.listdir(AEX_SRC):
-                os.makedirs(AEX_DST, exist_ok=True)
-                for item in os.listdir(AEX_SRC):
-                    if self._is_cancelled:
-                        self.cancelled.emit()
-                        return
-                        
-                    src_path = os.path.join(AEX_SRC, item)
-                    dst_path = os.path.join(AEX_DST, item)
-                    if os.path.isdir(src_path):
-                        shutil.copytree(src_path, dst_path, dirs_exist_ok=True)
-                    else:
-                        shutil.copy2(src_path, dst_path)
-                self.log_signal.emit("[INFO] AEX plugins installed successfully")
-            else:
-                self.log_signal.emit("[WARNING] AEX source directory not found or empty")
-
-            self.progress_signal.emit(60)
-
-            # Install CEP extension
-            self.log_signal.emit("[INFO] Installing CEP extension...")
-            if os.path.exists("CEP/AddKeys.reg"):
-                result = subprocess.run([wine_path, "regedit", "CEP/AddKeys.reg"], env=env, capture_output=True, text=True)
-                if result.returncode == 0:
-                    self.log_signal.emit("[INFO] CEP registry keys imported")
-                else:
-                    self.log_signal.emit(f"[WARNING] CEP registry import failed: {result.stderr}")
-            
-            if os.path.exists(CEP_SRC):
-                os.makedirs(CEP_DST, exist_ok=True)
-                shutil.copytree(CEP_SRC, os.path.join(CEP_DST, "flowv1.4.2"), dirs_exist_ok=True)
-                self.log_signal.emit("[INFO] CEP extension installed successfully")
-            else:
-                self.log_signal.emit("[WARNING] CEP source directory not found")
-
-            self.progress_signal.emit(70)
-
-            # Install presets
-            self.log_signal.emit("[INFO] Installing presets...")
-            if os.path.exists(PRESET_SRC) and os.listdir(PRESET_SRC):
-                os.makedirs(PRESET_DST, exist_ok=True)
-                for item in os.listdir(PRESET_SRC):
-                    if self._is_cancelled:
-                        self.cancelled.emit()
-                        return
-                        
-                    src_path = os.path.join(PRESET_SRC, item)
-                    dst_path = os.path.join(PRESET_DST, item)
-                    if os.path.isdir(src_path):
-                        shutil.copytree(src_path, dst_path, dirs_exist_ok=True)
-                    else:
-                        shutil.copy2(src_path, dst_path)
-                self.log_signal.emit("[INFO] Presets installed successfully")
-            else:
-                self.log_signal.emit("[WARNING] Preset source directory not found or empty")
-
-            self.progress_signal.emit(80)
-
-            # Run installer executables
-            self.log_signal.emit("[INFO] Running installer executables...")
-            if os.path.exists(INSTALLER_SRC):
-                original_dir = os.getcwd()
-                os.chdir(INSTALLER_SRC)
-                
-                # Install regular executables
-                for exe in os.listdir('.'):
-                    if exe.endswith('.exe') and exe not in ['E3D.exe', 'saber.exe']:
-                        if self._is_cancelled:
-                            self.cancelled.emit()
-                            return
-                            
-                        self.log_signal.emit(f"[INFO] Installing: {exe}")
-                        result = subprocess.run([wine_path, exe, '/verysilent', '/suppressmsgboxes'], env=env, capture_output=True, text=True)
-                        if result.returncode == 0:
-                            self.log_signal.emit(f"[INFO] {exe} installed successfully")
-                        else:
-                            self.log_signal.emit(f"[WARNING] {exe} installation had issues: {result.stderr}")
-                
-                # Special handling for E3D and saber
-                special_exes = ['E3D.exe', 'saber.exe']
-                for exe in special_exes:
-                    if os.path.exists(exe):
-                        self.log_signal.emit(f"[INFO] Please manually install: {exe}")
-                        subprocess.run([wine_path, exe], env=env)
-                
-                os.chdir(original_dir)
-                
-                # Copy Element files after installation
-                element_src = os.path.join(INSTALLER_SRC, "Element.aex")
-                element_license_src = os.path.join(INSTALLER_SRC, "Element.license")
-                video_copilot_dir = os.path.join(AEX_DST, "VideoCopilot")
-                
-                if os.path.exists(element_src) and os.path.exists(video_copilot_dir):
-                    shutil.copy2(element_src, os.path.join(video_copilot_dir, "Element.aex"))
-                    self.log_signal.emit("[INFO] Element.aex copied successfully")
-                
-                if os.path.exists(element_license_src) and os.path.exists(video_copilot_dir):
-                    shutil.copy2(element_license_src, os.path.join(video_copilot_dir, "Element.license"))
-                    self.log_signal.emit("[INFO] Element.license copied successfully")
-                
-                self.log_signal.emit("[INFO] Installers completed")
-            else:
-                self.log_signal.emit("[WARNING] Installer directory not found")
+            # Install components
+            self._install_aex_plugins()
+            self._install_cep_extension(env, wine_path)
+            self._install_presets()
+            self._run_installers(env, wine_path)
 
             self.progress_signal.emit(90)
-
-            # Clean up temporary files
             self._cleanup_leftovers()
-            
             self.progress_signal.emit(100)
             self.log_signal.emit("[INFO] Plugin installation completed successfully!")
             self.finished_signal.emit(True)
@@ -598,17 +408,104 @@ class PluginThread(QThread):
             self.log_signal.emit(f"[ERROR] Plugin installation failed: {str(e)}")
             self.finished_signal.emit(False)
 
+    def _install_aex_plugins(self):
+        """Install AEX plugins"""
+        aex_src = "aex"
+        if os.path.exists(aex_src) and os.listdir(aex_src):
+            os.makedirs(PLUGIN_DIR, exist_ok=True)
+            for item in os.listdir(aex_src):
+                if self._is_cancelled:
+                    self.cancelled.emit()
+                    return
+                src_path = os.path.join(aex_src, item)
+                dst_path = os.path.join(PLUGIN_DIR, item)
+                if os.path.isdir(src_path):
+                    shutil.copytree(src_path, dst_path, dirs_exist_ok=True)
+                else:
+                    shutil.copy2(src_path, dst_path)
+            self.log_signal.emit("[INFO] AEX plugins installed")
+
+    def _install_cep_extension(self, env, wine_path):
+        """Install CEP extension"""
+        if os.path.exists("CEP/AddKeys.reg"):
+            subprocess.run([wine_path, "regedit", "CEP/AddKeys.reg"], env=env, capture_output=True)
+        
+        cep_src = "CEP/flowv1.4.2"
+        cep_dst = os.path.join(self.wineprefix_path, "drive_c", "Program Files (x86)", 
+                              "Common Files", "Adobe", "CEP", "extensions")
+        
+        if os.path.exists(cep_src):
+            os.makedirs(cep_dst, exist_ok=True)
+            shutil.copytree(cep_src, os.path.join(cep_dst, "flowv1.4.2"), dirs_exist_ok=True)
+            self.log_signal.emit("[INFO] CEP extension installed")
+
+    def _install_presets(self):
+        """Install presets"""
+        preset_src = "preset-backup/"
+        if os.path.exists(preset_src) and os.listdir(preset_src):
+            os.makedirs(PRESET_DIR, exist_ok=True)
+            for item in os.listdir(preset_src):
+                if self._is_cancelled:
+                    self.cancelled.emit()
+                    return
+                src_path = os.path.join(preset_src, item)
+                dst_path = os.path.join(PRESET_DIR, item)
+                if os.path.isdir(src_path):
+                    shutil.copytree(src_path, dst_path, dirs_exist_ok=True)
+                else:
+                    shutil.copy2(src_path, dst_path)
+            self.log_signal.emit("[INFO] Presets installed")
+
+    def _run_installers(self, env, wine_path):
+        """Run installer executables"""
+        if not os.path.exists("installer"):
+            return
+
+        original_dir = os.getcwd()
+        os.chdir("installer")
+        
+        # Install regular executables
+        for exe in os.listdir('.'):
+            if exe.endswith('.exe') and exe not in ['E3D.exe', 'saber.exe']:
+                if self._is_cancelled:
+                    self.cancelled.emit()
+                    return
+                self.log_signal.emit(f"[INFO] Installing: {exe}")
+                subprocess.run([wine_path, exe, '/verysilent', '/suppressmsgboxes'], 
+                             env=env, capture_output=True)
+        
+        # Special handling for E3D and saber
+        for exe in ['E3D.exe', 'saber.exe']:
+            if os.path.exists(exe):
+                self.log_signal.emit(f"[INFO] Please manually install: {exe}")
+                subprocess.run([wine_path, exe], env=env)
+        
+        os.chdir(original_dir)
+        self._copy_element_files()
+
+    def _copy_element_files(self):
+        """Copy Element files after installation"""
+        video_copilot_dir = os.path.join(PLUGIN_DIR, "VideoCopilot")
+        if not os.path.exists(video_copilot_dir):
+            return
+
+        element_files = [
+            ("Element.aex", "Element.aex"),
+            ("Element.license", "Element.license")
+        ]
+        
+        for src_name, dst_name in element_files:
+            src_path = os.path.join("installer", src_name)
+            if os.path.exists(src_path):
+                shutil.copy2(src_path, os.path.join(video_copilot_dir, dst_name))
+                self.log_signal.emit(f"[INFO] {src_name} copied successfully")
+
     def _cleanup_leftovers(self):
         """Clean up leftover files"""
         try:
-            self.log_signal.emit("[INFO] Cleaning up temporary files...")
-            
-            folders_to_clean = ["CEP", "aex", "installer", "preset-backup", "scripts"]
-            for folder in folders_to_clean:
+            for folder in ["CEP", "aex", "installer", "preset-backup", "scripts"]:
                 if os.path.exists(folder):
                     shutil.rmtree(folder)
-                    self.log_signal.emit(f"[CLEAN] Removed {folder} folder")
-                    
         except Exception as e:
             self.log_signal.emit(f"[WARNING] Cleanup failed: {str(e)}")
 
@@ -623,34 +520,38 @@ class AeNuxApp(QWidget):
         self.patch_thread = None
         self.plugin_thread = None
         
-        # Variables to prevent spam clicks
+        # UI state management
         self.buttons_disabled = False
         self.button_cooldown_timer = QTimer()
         self.button_cooldown_timer.setSingleShot(True)
         self.button_cooldown_timer.timeout.connect(self._enable_buttons)
-        
-        # Save reference to main buttons
         self.main_buttons = []
 
+        self._setup_ui()
+        self._setup_connections()
+        self._check_installation_status()
+
+    def _setup_ui(self):
+        """Setup the user interface"""
+        root = QVBoxLayout(self)
+        
+        # Set window icon
         icon_path = os.path.join(os.path.dirname(__file__), "asset/logo.png")
         if os.path.exists(icon_path):
             self.setWindowIcon(QIcon(icon_path))
 
-        root = QVBoxLayout(self)
-        
         # Status row
         status_row = QHBoxLayout()
         status_row.addWidget(QLabel("Status:"))
         self.status_label = QLabel("Checking...")
         status_row.addWidget(self.status_label)
         status_row.addStretch()
+        
         self.install_button = QPushButton("Install")
-        self.install_button.clicked.connect(self._install_aenux)
         status_row.addWidget(self.install_button)
         self.main_buttons.append(self.install_button)
         
         self.uninstall_button = QPushButton("Uninstall")
-        self.uninstall_button.clicked.connect(self._uninstall_aenux)
         self.uninstall_button.hide()
         status_row.addWidget(self.uninstall_button)
         self.main_buttons.append(self.uninstall_button)
@@ -673,11 +574,9 @@ class AeNuxApp(QWidget):
         
         self.cancel_button = QPushButton("Cancel")
         self.cancel_button.setVisible(False)
-        self.cancel_button.clicked.connect(self._cancel_operation)
         self.cancel_button.setStyleSheet("QPushButton { background-color: #ff6b6b; color: white; }")
         progress_layout.addWidget(self.cancel_button)
         self.main_buttons.append(self.cancel_button)
-        
         root.addLayout(progress_layout)
 
         # Runner row
@@ -687,10 +586,8 @@ class AeNuxApp(QWidget):
         runner_row.addWidget(self.runner_dropdown)
         
         self.btn_refresh = QPushButton("Refresh")
-        self.btn_refresh.clicked.connect(self._refresh_runner_list)
         runner_row.addWidget(self.btn_refresh)
         self.main_buttons.append(self.btn_refresh)
-        
         root.addLayout(runner_row)
 
         # Checkboxes and Plugin button
@@ -699,19 +596,15 @@ class AeNuxApp(QWidget):
         cb_row.addWidget(self.patch_checkbox)
         
         self.btn_install_plugin = QPushButton("Install Plugin")
-        self.btn_install_plugin.clicked.connect(self._install_plugin)
         self.btn_install_plugin.setEnabled(False)
         cb_row.addWidget(self.btn_install_plugin)
         self.main_buttons.append(self.btn_install_plugin)
-        
         root.addLayout(cb_row)
 
         # Execution buttons
         exec_row = QHBoxLayout()
         self.btn_run = QPushButton("Run AeNux")
         self.btn_kill = QPushButton("Kill AeNux")
-        self.btn_run.clicked.connect(self._run_aenux)
-        self.btn_kill.clicked.connect(self._kill_aenux)
         exec_row.addWidget(self.btn_run)
         exec_row.addWidget(self.btn_kill)
         self.main_buttons.extend([self.btn_run, self.btn_kill])
@@ -719,13 +612,11 @@ class AeNuxApp(QWidget):
 
         # Folders
         folder_row = QHBoxLayout()
-        self.folder_buttons = []
         for name in ["Runner", "Plugin", "Preset", "Wineprefix"]:
             btn = QPushButton(f"{name} Folder")
             btn.clicked.connect(lambda checked, n=name.lower(): self._open_folder(n))
             folder_row.addWidget(btn)
-            self.folder_buttons.append(btn)
-        self.main_buttons.extend(self.folder_buttons)
+            self.main_buttons.append(btn)
         root.addLayout(folder_row)
 
         # Footer
@@ -733,22 +624,25 @@ class AeNuxApp(QWidget):
         footer.setAlignment(Qt.AlignmentFlag.AlignCenter)
         root.addWidget(footer)
 
-        # populate and apply config
-        self._populate_runner_dropdown()
+    def _setup_connections(self):
+        """Setup signal connections"""
+        self.install_button.clicked.connect(self._install_aenux)
+        self.uninstall_button.clicked.connect(self._uninstall_aenux)
+        self.cancel_button.clicked.connect(self._cancel_operation)
+        self.btn_refresh.clicked.connect(self._refresh_runner_list)
+        self.btn_install_plugin.clicked.connect(self._install_plugin)
+        self.btn_run.clicked.connect(self._run_aenux)
+        self.btn_kill.clicked.connect(self._kill_aenux)
         self.runner_dropdown.currentIndexChanged.connect(self._runner_changed)
         self.patch_checkbox.stateChanged.connect(self._patch_checkbox_changed)
 
+        self._populate_runner_dropdown()
         self._apply_saved_config()
-        self._check_installation_status()
-        self._check_runner_support()
 
     def _choose_local_zip_file(self, file_type="AeNux"):
         """Open file dialog to choose local zip file"""
         file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            f"Select {file_type} Zip File",
-            "",
-            "Zip Files (*.zip);;All Files (*)"
+            self, f"Select {file_type} Zip File", "", "Zip Files (*.zip);;All Files (*)"
         )
         return file_path
 
@@ -761,10 +655,8 @@ class AeNuxApp(QWidget):
         for button in self.main_buttons:
             button.setEnabled(False)
         
-        # Also disable dropdown and checkbox
         self.runner_dropdown.setEnabled(False)
         self.patch_checkbox.setEnabled(False)
-        
         self.button_cooldown_timer.start(duration)
 
     def _enable_buttons(self):
@@ -773,7 +665,6 @@ class AeNuxApp(QWidget):
         for button in self.main_buttons:
             button.setEnabled(True)
         
-        # Re-enable dropdown and checkbox with correct logic
         self.runner_dropdown.setEnabled(True)
         self._update_checkbox_states()
         self._check_runner_support()
@@ -782,10 +673,7 @@ class AeNuxApp(QWidget):
     def _update_checkbox_states(self):
         """Update checkbox status based on selected runner"""
         runner = self.runner_dropdown.currentText()
-        if "proton" in runner.lower():
-            self.patch_checkbox.setEnabled(False)
-        else:
-            self.patch_checkbox.setEnabled(True)
+        self.patch_checkbox.setEnabled("proton" not in runner.lower())
 
     def _cancel_operation(self):
         """Cancel the ongoing operation"""
@@ -794,44 +682,25 @@ class AeNuxApp(QWidget):
             
         self._disable_buttons_temporarily(1000)
         
-        if self.install_thread and self.install_thread.isRunning():
-            reply = QMessageBox.question(
-                self,
-                "Confirm Cancel",
-                "Are you sure you want to cancel the installation? Partially installed files will be cleaned up.",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-            )
-            if reply == QMessageBox.StandardButton.Yes:
-                self.install_thread.cancel()
-                self.logs_box.append("[USER] Installation cancelled by user.")
-                self.cancel_button.setVisible(False)
-                self.progress_bar.setVisible(False)
+        threads = [
+            (self.install_thread, "installation"),
+            (self.patch_thread, "patch application"), 
+            (self.plugin_thread, "plugin installation")
+        ]
         
-        elif self.patch_thread and self.patch_thread.isRunning():
-            reply = QMessageBox.question(
-                self,
-                "Confirm Cancel", 
-                "Are you sure you want to cancel the patch application?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-            )
-            if reply == QMessageBox.StandardButton.Yes:
-                self.patch_thread.cancel()
-                self.logs_box.append("[USER] Patch application cancelled by user.")
-                self.cancel_button.setVisible(False)
-                self.progress_bar.setVisible(False)
-        
-        elif self.plugin_thread and self.plugin_thread.isRunning():
-            reply = QMessageBox.question(
-                self,
-                "Confirm Cancel", 
-                "Are you sure you want to cancel the plugin installation?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-            )
-            if reply == QMessageBox.StandardButton.Yes:
-                self.plugin_thread.cancel()
-                self.logs_box.append("[USER] Plugin installation cancelled by user.")
-                self.cancel_button.setVisible(False)
-                self.progress_bar.setVisible(False)
+        for thread, operation_name in threads:
+            if thread and thread.isRunning():
+                reply = QMessageBox.question(
+                    self, "Confirm Cancel",
+                    f"Are you sure you want to cancel the {operation_name}?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                )
+                if reply == QMessageBox.StandardButton.Yes:
+                    thread.cancel()
+                    self.logs_box.append(f"[USER] {operation_name.capitalize()} cancelled by user.")
+                    self.cancel_button.setVisible(False)
+                    self.progress_bar.setVisible(False)
+                break
 
     def _create_shortcut(self):
         """Create desktop shortcut and icon"""
@@ -847,50 +716,33 @@ class AeNuxApp(QWidget):
             icon_dst = os.path.join(icons_dir, "AeNux.png")
             if os.path.exists(icon_src):
                 shutil.copy2(icon_src, icon_dst)
-                self.logs_box.append("[SHORTCUT] Icon copied successfully.")
-            else:
-                self.logs_box.append("[WARNING] Logo icon not found, skipping icon copy.")
-            
+
             # Create desktop entry
             applications_dir = os.path.expanduser("~/.local/share/applications")
             os.makedirs(applications_dir, exist_ok=True)
             
             desktop_file = os.path.join(applications_dir, "AeNux.desktop")
-            
-            # Check if run_qt6.py exists in current directory
             run_script = os.path.join(current_dir, "run_qt6.py")
+            
             if not os.path.exists(run_script):
-                self.logs_box.append("[ERROR] run_qt6.py not found in current directory!")
+                self.logs_box.append("[ERROR] run_qt6.py not found!")
                 return False
-            
-            # Use absolute paths
-            venv_python = os.path.join(current_dir, "venv", "bin", "python")
-            
-            # Check if venv python exists, if not use system python
-            if not os.path.exists(venv_python):
-                venv_python = "python3"
-                self.logs_box.append("[INFO] Using system python instead of venv")
             
             desktop_content = f"""[Desktop Entry]
 Name=AeNux Loader
 Comment=Run AeNux using Wine
-Exec={venv_python} {run_script}
+Exec=python3 {run_script}
 Path={current_dir}
 Type=Application
 Icon=AeNux
 Terminal=false
 Categories=AudioVideo;Video;
 """
-            
             with open(desktop_file, 'w') as f:
                 f.write(desktop_content)
             
-            # Make desktop file executable
             os.chmod(desktop_file, 0o755)
-            
-            # Update desktop database
             subprocess.run(["update-desktop-database", applications_dir], capture_output=True)
-            
             self.logs_box.append("[SHORTCUT] Desktop shortcut created successfully.")
             return True
             
@@ -901,22 +753,17 @@ Categories=AudioVideo;Video;
     def _remove_shortcut(self):
         """Remove desktop shortcut and icon"""
         try:
-            # Remove icon
             icon_path = os.path.expanduser("~/.local/share/icons/AeNux.png")
             if os.path.exists(icon_path):
                 os.remove(icon_path)
-                self.logs_box.append("[SHORTCUT] Icon removed.")
             
-            # Remove desktop entry
             desktop_file = os.path.expanduser("~/.local/share/applications/AeNux.desktop")
             if os.path.exists(desktop_file):
                 os.remove(desktop_file)
-                self.logs_box.append("[SHORTCUT] Desktop shortcut removed.")
             
-            # Update desktop database
             applications_dir = os.path.expanduser("~/.local/share/applications")
             subprocess.run(["update-desktop-database", applications_dir], capture_output=True)
-            
+            self.logs_box.append("[SHORTCUT] Desktop shortcut removed.")
             return True
             
         except Exception as e:
@@ -925,24 +772,18 @@ Categories=AudioVideo;Video;
 
     def _check_installation_status(self):
         """Check if AeNux is installed"""
-        if os.path.exists(AE_NUX_DIR):
-            try:
-                contents = [f for f in os.listdir(AE_NUX_DIR) if not f.startswith('.')]
-                if contents:
-                    self.status_label.setText("AeNux installed")
-                    self.install_button.hide()
-                    self.uninstall_button.show()
-                    self.btn_install_plugin.setEnabled(True)
-                    self.logs_box.append("[STATUS] AeNux is installed and ready to use.")
-                    return
-            except OSError:
-                pass
-        
-        self.status_label.setText("AeNux is not installed")
-        self.install_button.show()
-        self.uninstall_button.hide()
-        self.btn_install_plugin.setEnabled(False)
-        self.logs_box.append("[STATUS] AeNux is not installed. Click Install to proceed.")
+        if os.path.exists(AE_NUX_DIR) and any(not f.startswith('.') for f in os.listdir(AE_NUX_DIR)):
+            self.status_label.setText("AeNux installed")
+            self.install_button.hide()
+            self.uninstall_button.show()
+            self.btn_install_plugin.setEnabled(True)
+            self.logs_box.append("[STATUS] AeNux is installed and ready to use.")
+        else:
+            self.status_label.setText("AeNux is not installed")
+            self.install_button.show()
+            self.uninstall_button.hide()
+            self.btn_install_plugin.setEnabled(False)
+            self.logs_box.append("[STATUS] AeNux is not installed. Click Install to proceed.")
 
     def _install_aenux(self):
         """Install AeNux"""
@@ -954,31 +795,25 @@ Categories=AudioVideo;Video;
             return
 
         reply = QMessageBox.question(
-            self, 
-            "Confirm Installation",
+            self, "Confirm Installation",
             f"This will install AeNux to {AE_NUX_DIR}. Continue?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         
         if reply == QMessageBox.StandardButton.Yes:
-            # Always use local file for installation
             zip_file_path = self._choose_local_zip_file("AeNux")
             if zip_file_path:
                 self._start_installation(zip_file_path)
             else:
                 self.logs_box.append("[USER] No file selected. Installation cancelled.")
 
-    def _start_installation(self, zip_file_path=None):
-        """Start the installation process with optional local file"""
+    def _start_installation(self, zip_file_path):
+        """Start the installation process"""
         self._disable_buttons_temporarily(500)
-        self.install_button.setEnabled(False)
         self.install_button.setText("Installing...")
         self.progress_bar.setVisible(True)
         self.cancel_button.setVisible(True)
         self.progress_bar.setValue(0)
-        
-        if zip_file_path:
-            self.logs_box.append(f"[INFO] Using local file: {zip_file_path}")
         
         self.install_thread = InstallThread(zip_file_path)
         self.install_thread.log_signal.connect(self.logs_box.append)
@@ -993,32 +828,21 @@ Categories=AudioVideo;Video;
             return
             
         reply = QMessageBox.question(
-            self,
-            "Confirm Uninstall",
-            "This will remove AeNux and all its data including wineprefix and shortcuts. Continue?",
+            self, "Confirm Uninstall",
+            "This will remove AeNux and all its data. Continue?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         
         if reply == QMessageBox.StandardButton.Yes:
             self._disable_buttons_temporarily(2000)
             try:
-                # Remove AeNux directory ONLY
-                if os.path.exists(AE_NUX_DIR):
-                    shutil.rmtree(AE_NUX_DIR)
-                    self.logs_box.append("[UNINSTALL] AeNux directory removed.")
+                for path in [AE_NUX_DIR, WINE_PREFIX_DIR]:
+                    if os.path.exists(path):
+                        shutil.rmtree(path)
+                        self.logs_box.append(f"[UNINSTALL] Removed {path}")
                 
-                # Remove wineprefix
-                if os.path.exists(WINE_PREFIX_DIR):
-                    shutil.rmtree(WINE_PREFIX_DIR)
-                    self.logs_box.append("[UNINSTALL] Wineprefix removed.")
-                
-                # Remove shortcuts
                 self._remove_shortcut()
-                
-                # Clear logs
                 self.logs_box.clear()
-                
-                # Update status
                 self._check_installation_status()
                 self.logs_box.append("[UNINSTALL] AeNux has been completely uninstalled.")
                 
@@ -1028,30 +852,20 @@ Categories=AudioVideo;Video;
 
     def _installation_finished(self, success):
         """Handle installation completion"""
-        self.buttons_disabled = False
         self._enable_buttons()
-        
-        self.install_button.setEnabled(True)
         self.install_button.setText("Install")
         self.progress_bar.setVisible(False)
         self.cancel_button.setVisible(False)
         
         if success:
-            # Create desktop shortcut
             self._create_shortcut()
-            
-            import time
-            time.sleep(0.5)
             self._check_installation_status()
         else:
             self.logs_box.append("[ERROR] Installation failed. Please check the logs above.")
 
     def _installation_cancelled(self):
         """Handle installation cancellation"""
-        self.buttons_disabled = False
         self._enable_buttons()
-        
-        self.install_button.setEnabled(True)
         self.install_button.setText("Install")
         self.progress_bar.setVisible(False)
         self.cancel_button.setVisible(False)
@@ -1066,37 +880,26 @@ Categories=AudioVideo;Video;
         if self.buttons_disabled:
             return
             
-        # Check if installed first
         if not os.path.exists(AE_NUX_DIR):
-            QMessageBox.warning(self, "Not Installed", "Please install AeNux first before installing plugins.")
+            QMessageBox.warning(self, "Not Installed", "Please install AeNux first.")
             return
 
-        # Check if runner is selected
         runner = self.runner_dropdown.currentText()
-        if runner.lower().startswith("select") or runner.lower() == "no runners found":
-            QMessageBox.warning(self, "No Runner Selected", "Please select a runner first.")
+        if self._is_invalid_runner(runner):
             return
 
-        # Check if runner is Proton (not supported)
-        if "proton" in runner.lower():
-            QMessageBox.warning(self, "Proton Not Supported", "Proton runners are not supported for plugin installation.")
-            return
-
-        # Always use local file for plugins
         zip_file_path = self._choose_local_zip_file("Plugin")
         if not zip_file_path:
             return
 
         reply = QMessageBox.question(
-            self,
-            "Confirm Plugin Installation",
-            "This will install additional plugins for AeNux. This may take some time. Continue?",
+            self, "Confirm Plugin Installation",
+            "This will install additional plugins for AeNux. Continue?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         
         if reply == QMessageBox.StandardButton.Yes:
             self._disable_buttons_temporarily(500)
-            self.btn_install_plugin.setEnabled(False)
             self.btn_install_plugin.setText("Installing...")
             self.progress_bar.setVisible(True)
             self.cancel_button.setVisible(True)
@@ -1111,12 +914,19 @@ Categories=AudioVideo;Video;
             self.plugin_thread.cancelled.connect(self._plugin_installation_cancelled)
             self.plugin_thread.start()
 
+    def _is_invalid_runner(self, runner):
+        """Check if runner is invalid for operations"""
+        if runner.lower().startswith("select") or runner.lower() == "no runners found":
+            QMessageBox.warning(self, "No Runner Selected", "Please select a runner first.")
+            return True
+        if "proton" in runner.lower():
+            QMessageBox.warning(self, "Proton Not Supported", "Proton runners are not supported.")
+            return True
+        return False
+
     def _plugin_installation_finished(self, success):
         """Handle plugin installation completion"""
-        self.buttons_disabled = False
         self._enable_buttons()
-        
-        self.btn_install_plugin.setEnabled(True)
         self.btn_install_plugin.setText("Install Plugin")
         self.progress_bar.setVisible(False)
         self.cancel_button.setVisible(False)
@@ -1128,10 +938,7 @@ Categories=AudioVideo;Video;
 
     def _plugin_installation_cancelled(self):
         """Handle plugin installation cancellation"""
-        self.buttons_disabled = False
         self._enable_buttons()
-        
-        self.btn_install_plugin.setEnabled(True)
         self.btn_install_plugin.setText("Install Plugin")
         self.progress_bar.setVisible(False)
         self.cancel_button.setVisible(False)
@@ -1142,20 +949,11 @@ Categories=AudioVideo;Video;
         if self.buttons_disabled:
             return
             
-        # Check if installed first
-        if not os.path.exists(AE_NUX_DIR) or not any(not f.startswith('.') for f in os.listdir(AE_NUX_DIR)):
-            QMessageBox.warning(self, "Not Installed", "Please install AeNux first before running.")
+        if not self._validate_ae_nux_installation():
             return
 
-        # Check if runner is selected
         runner = self.runner_dropdown.currentText()
-        if runner.lower().startswith("select") or runner.lower() == "no runners found":
-            QMessageBox.warning(self, "No Runner Selected", "Please select a runner first.")
-            return
-
-        # Check if runner is Proton (not supported)
-        if "proton" in runner.lower():
-            QMessageBox.warning(self, "Proton Not Supported", "Proton runners are not supported. Please select a Wine runner.")
+        if self._is_invalid_runner(runner):
             return
 
         afterfx_path = os.path.join(AE_NUX_DIR, "AfterFX.exe")
@@ -1163,39 +961,44 @@ Categories=AudioVideo;Video;
             QMessageBox.warning(self, "AfterFX Not Found", f"AfterFX.exe not found at: {afterfx_path}")
             return
 
-        # Get paths
         runner_path = os.path.join(os.path.dirname(__file__), "runner", runner)
-        
-        # Create wineprefix directory if it doesn't exist
         os.makedirs(WINE_PREFIX_DIR, exist_ok=True)
 
         if self.patch_checkbox.isChecked():
-            # Apply patch first, then run AfterFX
-            self._disable_buttons_temporarily(1000)
-            self.logs_box.append("[INFO] Applying AeNux patch before running...")
-            self.progress_bar.setVisible(True)
-            self.cancel_button.setVisible(True)
-            self.progress_bar.setValue(0)
-            
-            self.patch_thread = PatchThread(runner_path, WINE_PREFIX_DIR)
-            self.patch_thread.log_signal.connect(self.logs_box.append)
-            self.patch_thread.progress_signal.connect(self.progress_bar.setValue)
-            self.patch_thread.finished_signal.connect(lambda success: self._patch_finished(success, runner_path, WINE_PREFIX_DIR, afterfx_path))
-            self.patch_thread.cancelled.connect(self._patch_cancelled)
-            self.patch_thread.start()
+            self._apply_patch_then_run(runner_path, afterfx_path)
         else:
-            # Run AfterFX directly without patch
             self._disable_buttons_temporarily(1000)
             self._run_afterfx(runner_path, WINE_PREFIX_DIR, afterfx_path)
 
+    def _validate_ae_nux_installation(self):
+        """Validate that AeNux is properly installed"""
+        if not os.path.exists(AE_NUX_DIR) or not any(not f.startswith('.') for f in os.listdir(AE_NUX_DIR)):
+            QMessageBox.warning(self, "Not Installed", "Please install AeNux first.")
+            return False
+        return True
+
+    def _apply_patch_then_run(self, runner_path, afterfx_path):
+        """Apply patch first, then run AfterFX"""
+        self._disable_buttons_temporarily(1000)
+        self.logs_box.append("[INFO] Applying AeNux patch before running...")
+        self.progress_bar.setVisible(True)
+        self.cancel_button.setVisible(True)
+        self.progress_bar.setValue(0)
+        
+        self.patch_thread = PatchThread(runner_path, WINE_PREFIX_DIR)
+        self.patch_thread.log_signal.connect(self.logs_box.append)
+        self.patch_thread.progress_signal.connect(self.progress_bar.setValue)
+        self.patch_thread.finished_signal.connect(
+            lambda success: self._patch_finished(success, runner_path, WINE_PREFIX_DIR, afterfx_path)
+        )
+        self.patch_thread.cancelled.connect(self._patch_cancelled)
+        self.patch_thread.start()
+
     def _patch_finished(self, success, runner_path, wineprefix_path, afterfx_path):
         """Handle patch completion"""
-        self.buttons_disabled = False
         self._enable_buttons()
-        
         self.progress_bar.setVisible(False)
         self.cancel_button.setVisible(False)
-        # Uncheck the patch checkbox after patch is completed
         self.patch_checkbox.setChecked(False)
         
         if success:
@@ -1206,9 +1009,7 @@ Categories=AudioVideo;Video;
 
     def _patch_cancelled(self):
         """Handle patch cancellation"""
-        self.buttons_disabled = False
         self._enable_buttons()
-        
         self.progress_bar.setVisible(False)
         self.cancel_button.setVisible(False)
         self.patch_checkbox.setChecked(False)
@@ -1218,14 +1019,10 @@ Categories=AudioVideo;Video;
         """Run AfterFX.exe with the selected runner"""
         try:
             wine_path = os.path.join(runner_path, "bin", "wine")
-            
-            # Set environment
             env = os.environ.copy()
             env['WINEPREFIX'] = wineprefix_path
             
             self.logs_box.append(f"[RUN] Starting AfterFX.exe with {os.path.basename(runner_path)}...")
-            
-            # Direct Wine execution
             subprocess.Popen([wine_path, afterfx_path], env=env)
             self.logs_box.append("[RUN] AfterFX started with Wine.")
                 
@@ -1240,15 +1037,14 @@ Categories=AudioVideo;Video;
             
         self._disable_buttons_temporarily(1000)
         try:
-            # Kill wine processes
-            subprocess.run(["pkill", "-f", "AfterFX.exe"])
-            subprocess.run(["pkill", "-f", "wine"])
-            subprocess.run(["pkill", "-f", "wineserver"])
+            for process in ["AfterFX.exe", "wine", "wineserver"]:
+                subprocess.run(["pkill", "-f", process])
             self.logs_box.append("[KILL] AeNux processes terminated.")
         except Exception as e:
             self.logs_box.append(f"[ERROR] Failed to kill processes: {str(e)}")
 
     def _load_config(self):
+        """Load configuration from file"""
         if os.path.exists(CONFIG_PATH):
             try:
                 with open(CONFIG_PATH, "r") as f:
@@ -1258,9 +1054,8 @@ Categories=AudioVideo;Video;
         return {}
 
     def _save_config(self):
-        config = {
-            "runner": self.runner_dropdown.currentText()
-        }
+        """Save configuration to file"""
+        config = {"runner": self.runner_dropdown.currentText()}
         try:
             with open(CONFIG_PATH, "w") as f:
                 json.dump(config, f, indent=2)
@@ -1268,12 +1063,14 @@ Categories=AudioVideo;Video;
             pass
 
     def _apply_saved_config(self):
+        """Apply saved configuration"""
         if "runner" in self.config:
             idx = self.runner_dropdown.findText(self.config["runner"])
             if idx >= 0:
                 self.runner_dropdown.setCurrentIndex(idx)
 
     def _populate_runner_dropdown(self):
+        """Populate runner dropdown with available runners"""
         self.runner_dropdown.clear()
         self.runner_dropdown.addItem("Select your runner")
         path = os.path.join(os.path.dirname(__file__), "runner")
@@ -1287,61 +1084,59 @@ Categories=AudioVideo;Video;
             self.runner_dropdown.addItem("No runners found")
 
     def _runner_changed(self, index):
+        """Handle runner selection change"""
         runner = self.runner_dropdown.currentText()
         
-        # Check for Proton runner and disable buttons if found
         if "proton" in runner.lower():
-            self.btn_run.setEnabled(False)
-            self.btn_kill.setEnabled(False)
-            self.btn_install_plugin.setEnabled(False)
-            self.patch_checkbox.setEnabled(False)
+            self._disable_proton_buttons()
             self.logs_box.append("[ERROR] Proton is not supported! Please select a Wine runner.")
         else:
-            self.btn_run.setEnabled(True)
-            self.btn_kill.setEnabled(True)
-            self.patch_checkbox.setEnabled(True)
-            # Only enable plugin button if AeNux is installed
-            if os.path.exists(AE_NUX_DIR):
-                self.btn_install_plugin.setEnabled(True)
+            self._enable_normal_buttons()
             if not runner.lower().startswith("select"):
                 self.logs_box.append(f"[INFO] Selected runner: {runner}")
         
         self._save_config()
 
+    def _disable_proton_buttons(self):
+        """Disable buttons for Proton runner"""
+        self.btn_run.setEnabled(False)
+        self.btn_kill.setEnabled(False)
+        self.btn_install_plugin.setEnabled(False)
+        self.patch_checkbox.setEnabled(False)
+
+    def _enable_normal_buttons(self):
+        """Enable buttons for normal Wine runner"""
+        self.btn_run.setEnabled(True)
+        self.btn_kill.setEnabled(True)
+        self.patch_checkbox.setEnabled(True)
+        if os.path.exists(AE_NUX_DIR):
+            self.btn_install_plugin.setEnabled(True)
+
     def _patch_checkbox_changed(self, state):
+        """Handle patch checkbox state change"""
         if self.buttons_disabled:
             return
             
-        if state == Qt.CheckState.Checked.value:
-            # Check if wineprefix already exists
-            if self._check_wineprefix():
-                QMessageBox.warning(
-                    self, "Wineprefix Exists",
-                    "Wineprefix already exists, please remove it first before running patch!"
-                )
-                self.patch_checkbox.setChecked(False)
-                return
-            
-            self.logs_box.append("[OPTION] Apply AeNux Patch: ENABLED")
-        else:
-            self.logs_box.append("[OPTION] Apply AeNux Patch: DISABLED")
+        if state == Qt.CheckState.Checked.value and self._check_wineprefix():
+            QMessageBox.warning(self, "Wineprefix Exists",
+                              "Wineprefix already exists, please remove it first before running patch!")
+            self.patch_checkbox.setChecked(False)
+            return
+        
+        status = "ENABLED" if state == Qt.CheckState.Checked.value else "DISABLED"
+        self.logs_box.append(f"[OPTION] Apply AeNux Patch: {status}")
 
     def _check_runner_support(self):
-        """Check if current runner is supported (non-Proton)"""
+        """Check if current runner is supported"""
         runner = self.runner_dropdown.currentText()
         if "proton" in runner.lower():
-            self.btn_run.setEnabled(False)
-            self.btn_kill.setEnabled(False)
-            self.btn_install_plugin.setEnabled(False)
+            self._disable_proton_buttons()
             self.logs_box.append("[ERROR] Proton is not supported!")
         else:
-            self.btn_run.setEnabled(True)
-            self.btn_kill.setEnabled(True)
-            # Only enable plugin button if AeNux is installed
-            if os.path.exists(AE_NUX_DIR):
-                self.btn_install_plugin.setEnabled(True)
+            self._enable_normal_buttons()
 
     def _refresh_runner_list(self):
+        """Refresh the list of available runners"""
         if self.buttons_disabled:
             return
             
@@ -1351,31 +1146,29 @@ Categories=AudioVideo;Video;
         self._check_runner_support()
 
     def _open_folder(self, name):
+        """Open the specified folder"""
         if self.buttons_disabled:
             return
             
         self._disable_buttons_temporarily(1000)
         
-        if name == "wineprefix":
-            path = WINE_PREFIX_DIR
-            # Create directory if it doesn't exist
-            os.makedirs(path, exist_ok=True)
-        elif name == "plugin":
-            path = PLUGIN_DIR
-            if not os.path.exists(AE_NUX_DIR):
-                QMessageBox.warning(self, "Not Installed", "You need to install AeNux first")
-                return
-            os.makedirs(path, exist_ok=True)
-        elif name == "preset":
-            path = PRESET_DIR
-            if not os.path.exists(AE_NUX_DIR):
-                QMessageBox.warning(self, "Not Installed", "You need to install AeNux first")
-                return
-            os.makedirs(path, exist_ok=True)
-        else:  # "runner"
-            path = os.path.join(os.path.dirname(__file__), name)
-            os.makedirs(path, exist_ok=True)
+        folder_paths = {
+            "wineprefix": WINE_PREFIX_DIR,
+            "plugin": PLUGIN_DIR,
+            "preset": PRESET_DIR,
+            "runner": os.path.join(os.path.dirname(__file__), "runner")
+        }
         
+        path = folder_paths.get(name)
+        if not path:
+            return
+
+        # Validate installation for certain folders
+        if name in ["plugin", "preset"] and not os.path.exists(AE_NUX_DIR):
+            QMessageBox.warning(self, "Not Installed", "You need to install AeNux first")
+            return
+
+        os.makedirs(path, exist_ok=True)
         try:
             subprocess.Popen(["xdg-open", path])
         except Exception:
