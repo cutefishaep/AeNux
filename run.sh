@@ -13,6 +13,26 @@ print_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 print_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
+# Check if asset/System32 directory exists
+check_system32_assets() {
+    local system32_dir="$(dirname "$0")/asset/System32"
+    
+    if [ ! -d "$system32_dir" ]; then
+        print_error "asset/System32 directory not found at: $system32_dir"
+        
+        # Show Zenity error popup
+        zenity --error \
+               --title="Missing Required Files" \
+               --width=500 \
+               --height=200 \
+               --text="The asset/System32 directory was not found!\n\nThis directory contains essential DLL files required for AeNux to function properly.\n\nPlease copy the necessary DLL files from your Windows system.\n\nFor detailed instructions, visit:\ngithub.com/cutefishaep/AeNux\n\nAfter copying the required files, please run this script again."
+        
+        exit 1
+    else
+        print_success "asset/System32 directory found"
+    fi
+}
+
 # Check UV installation
 check_uv() {
     if ! command -v uv &> /dev/null; then
@@ -130,6 +150,7 @@ cleanup() {
 # Main function
 main() {
     welcome_message
+    check_system32_assets  # Check for required System32 assets first
     check_uv
     check_pyqt6
     install_xcb_dependencies
