@@ -59,28 +59,6 @@ sudo dnf install wget unzip cabextract zenity python3 python3-pip
 ```bash
 sudo pacman -S wget unzip cabextract zenity python python-pip
 ```
-
-### Python Dependencies
-After cloning the repository, install the required Python packages:
-
-```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install PyQt6
-```
-
-### Wine Dependencies
-AeNux requires Wine to be installed on your system:
-
-**Ubuntu/Debian:**
-```bash
-sudo dpkg --add-architecture i386
-sudo apt update
-sudo apt install wine wine32 wine64 libwine libwine:i386 fonts-wine
-```
-
-**Note:** The application will automatically detect and use Wine runners from the `runner/` directory.
-
 ---
 
 ## 🛠️ Installation Guide
