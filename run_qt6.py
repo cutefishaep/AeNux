@@ -36,55 +36,19 @@ class InstallThread(QThread):
 
     def run(self):
         try:
-            if self.is_local_file:
-                # Installation from local file
-                self.log_signal.emit("[INFO] Installing AeNux from local file...")
-                self.progress_signal.emit(10)
-                
-                if not os.path.exists(self.zip_file_path):
-                    self.log_signal.emit(f"[ERROR] Local file not found: {self.zip_file_path}")
-                    self.finished_signal.emit(False)
-                    return
-                
-                # Copy local file to current directory as 2024.zip
-                self.log_signal.emit("[DEBUG] Copying local file...")
-                shutil.copy2(self.zip_file_path, '2024.zip')
-                
-            else:
-                # Installation from download
-                # Check if wget is available
-                if not shutil.which('wget'):
-                    self.log_signal.emit("[ERROR] wget is not installed. Please install wget first.")
-                    self.finished_signal.emit(False)
-                    return
-
-                self.log_signal.emit("[INFO] Installing AeNux from download...")
-                self.progress_signal.emit(10)
-                
-                if self._is_cancelled:
-                    self._cleanup_partial_install()
-                    self.cancelled.emit()
-                    return
-                
-                # Download the file
-                self.log_signal.emit("[DEBUG] Downloading AeNux package, around 1.3gb...")
-                result = subprocess.run([
-                    'wget', '-O', '2024.zip', 
-                    'https://huggingface.co/cutefishae/AeNux-model/resolve/main/2024.zip'
-                ], capture_output=True, text=True)
-                
-                if self._is_cancelled:
-                    self._cleanup_partial_install()
-                    self.cancelled.emit()
-                    return
-                
-                if result.returncode != 0:
-                    self.log_signal.emit(f"[ERROR] Download failed: {result.stderr}")
-                    self.finished_signal.emit(False)
-                    return
-                
-                self.log_signal.emit("[DEBUG] Download completed successfully")
+            # Installation from local file only
+            self.log_signal.emit("[INFO] Installing AeNux from local file...")
+            self.progress_signal.emit(10)
             
+            if not os.path.exists(self.zip_file_path):
+                self.log_signal.emit(f"[ERROR] Local file not found: {self.zip_file_path}")
+                self.finished_signal.emit(False)
+                return
+            
+            # Copy local file to current directory as 2024.zip
+            self.log_signal.emit("[DEBUG] Copying local file...")
+            shutil.copy2(self.zip_file_path, '2024.zip')
+                
             self.progress_signal.emit(40)
             
             if self._is_cancelled:
@@ -462,7 +426,7 @@ class PluginThread(QThread):
             REQUIRED_FOLDERS = ["aex", "CEP", "installer", "preset-backup", "scripts"]
             zip_file_path = 'aenux-require-plugin.zip'
             
-            # Determine if we need to download or use local file
+            # Always use local file for plugins
             if self.is_local_file:
                 self.log_signal.emit(f"[INFO] Using local plugin file: {self.zip_file_path}")
                 if not os.path.exists(self.zip_file_path):
@@ -477,26 +441,11 @@ class PluginThread(QThread):
                 missing_folders = [folder for folder in REQUIRED_FOLDERS if not os.path.exists(folder)]
                 
                 if missing_folders:
-                    self.log_signal.emit(f"[INFO] Missing folders: {missing_folders}, downloading plugin package...")
-                    self.progress_signal.emit(30)
-                    
-                    # Download plugin package
-                    if not shutil.which('wget'):
-                        self.log_signal.emit("[ERROR] wget is not installed. Please install wget first.")
-                        self.finished_signal.emit(False)
-                        return
-                    
-                    result = subprocess.run([
-                        'wget', '-O', zip_file_path, 
-                        'https://huggingface.co/cutefishae/AeNux-model/resolve/main/aenux-require-plugin.zip'
-                    ], capture_output=True, text=True)
-                    
-                    if result.returncode != 0:
-                        self.log_signal.emit(f"[ERROR] Download failed: {result.stderr}")
-                        self.finished_signal.emit(False)
-                        return
+                    self.log_signal.emit(f"[ERROR] Missing plugin folders: {missing_folders}. Please provide a plugin zip file.")
+                    self.finished_signal.emit(False)
+                    return
                 else:
-                    self.log_signal.emit("[INFO] All required plugin folders found, skipping download...")
+                    self.log_signal.emit("[INFO] All required plugin folders found, proceeding...")
 
             # Extract if we have a zip file
             if os.path.exists(zip_file_path):
@@ -793,27 +742,6 @@ class AeNuxApp(QWidget):
         self._check_installation_status()
         self._check_runner_support()
 
-    def _show_install_method_dialog(self, title, message):
-        """Show dialog to choose installation method"""
-        dialog = QMessageBox(self)
-        dialog.setWindowTitle(title)
-        dialog.setText(message)
-        
-        download_btn = dialog.addButton("Download", QMessageBox.ButtonRole.AcceptRole)
-        choose_file_btn = dialog.addButton("Choose Local File", QMessageBox.ButtonRole.ActionRole)
-        cancel_btn = dialog.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
-        
-        dialog.exec()
-        
-        clicked_button = dialog.clickedButton()
-        
-        if clicked_button == download_btn:
-            return "download"
-        elif clicked_button == choose_file_btn:
-            return "local_file"
-        else:
-            return "cancel"
-
     def _choose_local_zip_file(self, file_type="AeNux"):
         """Open file dialog to choose local zip file"""
         file_path, _ = QFileDialog.getOpenFileName(
@@ -1033,24 +961,12 @@ Categories=AudioVideo;Video;
         )
         
         if reply == QMessageBox.StandardButton.Yes:
-            # Show installation method dialog
-            method = self._show_install_method_dialog(
-                "Installation Method", 
-                "How would you like to install AeNux?"
-            )
-            
-            if method == "cancel":
-                self.logs_box.append("[USER] Installation cancelled.")
-                return
-            elif method == "download":
-                self._start_installation()
-            elif method == "local_file":
-                zip_file_path = self._choose_local_zip_file("AeNux")
-                if zip_file_path:
-                    self._start_installation(zip_file_path)
-                else:
-                    self.logs_box.append("[USER] No file selected. Installation cancelled.")
-                    return
+            # Always use local file for installation
+            zip_file_path = self._choose_local_zip_file("AeNux")
+            if zip_file_path:
+                self._start_installation(zip_file_path)
+            else:
+                self.logs_box.append("[USER] No file selected. Installation cancelled.")
 
     def _start_installation(self, zip_file_path=None):
         """Start the installation process with optional local file"""
@@ -1166,20 +1082,10 @@ Categories=AudioVideo;Video;
             QMessageBox.warning(self, "Proton Not Supported", "Proton runners are not supported for plugin installation.")
             return
 
-        # Show installation method dialog for plugins
-        method = self._show_install_method_dialog(
-            "Plugin Installation Method", 
-            "How would you like to install plugins?"
-        )
-        
-        if method == "cancel":
+        # Always use local file for plugins
+        zip_file_path = self._choose_local_zip_file("Plugin")
+        if not zip_file_path:
             return
-        elif method == "local_file":
-            zip_file_path = self._choose_local_zip_file("Plugin")
-            if not zip_file_path:
-                return
-        else:
-            zip_file_path = None
 
         reply = QMessageBox.question(
             self,

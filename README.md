@@ -39,6 +39,50 @@
 
 ---
 
+## 📋 Dependencies
+
+### System Dependencies
+Before running AeNux, ensure you have the following dependencies installed:
+
+**Ubuntu/Debian:**
+```bash
+sudo apt update
+sudo apt install wget unzip cabextract zenity python3 python3-pip python3-venv
+```
+
+**Fedora:**
+```bash
+sudo dnf install wget unzip cabextract zenity python3 python3-pip
+```
+
+**Arch Linux:**
+```bash
+sudo pacman -S wget unzip cabextract zenity python python-pip
+```
+
+### Python Dependencies
+After cloning the repository, install the required Python packages:
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install PyQt6
+```
+
+### Wine Dependencies
+AeNux requires Wine to be installed on your system:
+
+**Ubuntu/Debian:**
+```bash
+sudo dpkg --add-architecture i386
+sudo apt update
+sudo apt install wine wine32 wine64 libwine libwine:i386 fonts-wine
+```
+
+**Note:** The application will automatically detect and use Wine runners from the `runner/` directory.
+
+---
+
 ## 🛠️ Installation Guide
 
 ### Quick Installation
@@ -47,28 +91,35 @@
    ```bash
    git clone https://github.com/cutefishaep/AeNux
    cd AeNux
-   chmod +X run.sh
+   chmod +x run.sh
    ./run.sh
    ```
    *Ensure you're within the cloned repository directory*
 
 2. **GUI Installation**
    - Click the **"Install"** button in the top-right corner
+   - Select your local AeNux zip file when prompted
    - Enable the **"Apply AeNux Patch"** checkbox
    - Click **"Run AeNux"** to launch AeNux
 
 ### Plugin Installation
 
+**Important Notice:** Due to copyright and software piracy concerns, plugin files are not included in this repository. 
+
+To obtain the required plugin files:
+1. Launch AeNux GUI
+2. Click the **"Install Plugin"** button
+3. Select your local plugin zip file when prompted
+4. Follow the installation process
+
+**For plugin file access and additional information, please contact:**
+- **Telegram:** [@cutefishaep](https://t.me/cutefishaep)
+- **Please DM for plugin availability and usage guidelines**
+
 The plugin directory is located at:
 ```bash
 /home/<your-username>/cutefishaep/AeNux/Plug-ins
 ```
-
-**Free Plugin**: Install all most editor used plugins:
-```bash
-Run "Install Plugin on the gui"
-```
-[🔗 AeNux Plugin Repository](https://github.com/cutefishaep/AeNux-plugin)
 
 ### Uninstallation
 
@@ -80,6 +131,8 @@ Run "Install Plugin on the gui"
 
 ## 📋 Important Notes
 
+- **File Requirements**: You must provide your own AeNux and plugin zip files
+- **Legal Compliance**: Ensure you have proper licenses for all software and plugins
 - **Wine Configuration**: Installation methods may vary across Linux distributions. Adjust instructions in `run_qt6.py` accordingly
 - **Swap Memory**: Disabling swap is strongly recommended to preserve SSD longevity
 - **Performance**: Results may vary based on hardware configuration and Linux distribution
@@ -89,6 +142,8 @@ Run "Install Plugin on the gui"
 ## 📄 License
 
 This project is licensed for educational and personal use exclusively. Commercial redistribution or unauthorized use is strictly prohibited.
+
+**Copyright Notice:** This repository does not contain any proprietary software, plugins, or copyrighted material. Users are responsible for obtaining legitimate copies of all required software components.
 
 ---
 
@@ -116,3 +171,13 @@ https://forum.mattkc.com/viewtopic.php?t=337
 **Happy Editing on Linux! 🎬🐧**
 
 </div>
+
+---
+
+## 🔧 Support
+
+For technical support, plugin access, or additional information:
+- **Telegram:** [@cutefishaep](https://t.me/cutefishaep)
+- **GitHub Issues:** For bug reports and feature requests
+
+**Disclaimer:** The maintainers are not responsible for any licensing violations. Users must ensure they comply with all software licensing agreements.
