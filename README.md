@@ -14,10 +14,13 @@
 
 ## 🚀 Overview
 
-**AeNux** is a sophisticated Linux solution that enables seamless execution of **Adobe After Effects** through **Wine** and **Winetricks**. Designed for creative professionals who prefer Linux environments, this project bridges the gap between Windows-based creative software and Linux ecosystems.
+**AeNux** is a sophisticated Linux solution that enables seamless execution of **Adobe After Effects** through **Wine** and **Winetricks**.
+Designed for creative professionals who prefer Linux environments, this project bridges the gap between Windows-based creative software and Linux ecosystems.
 
 > ⚠️ **Educational Purpose Notice**
-> This project is intended for educational and experimental use only. Please respect software licensing agreements and use responsibly. The primary objective is to explore Linux compatibility for creative applications.
+> This project is intended for educational and experimental use only.
+> Please respect software licensing agreements and use responsibly.
+> The primary objective is to explore Linux compatibility for creative applications.
 
 ---
 
@@ -83,7 +86,30 @@ sudo pacman -S wget unzip cabextract zenity python python-pip
 
    *Ensure you're within the cloned repository directory.*
 
-2. **GUI Installation**
+2. **Provide Required Microsoft Components**
+
+   AeNux requires two Microsoft XML components for proper functionality:
+
+   * `msxml3.dll`
+   * `msxml3r.dll`
+
+   Locate these files on your Windows system at:
+
+   ```
+   C:\Windows\System32\
+   ```
+
+   Then, copy both files into the following directory inside your AeNux folder:
+
+   ```
+   /asset/System32
+   ```
+
+   > ⚠️ **Important:**
+   > These files are proprietary Microsoft components and are **not included** with AeNux.
+   > You must provide them from your own licensed copy of Windows (recommended: **Windows 8.1**).
+
+3. **Run AeNux GUI**
 
    * Click the **"Install"** button in the top-right corner
    * Select your local AeNux zip file when prompted
@@ -100,13 +126,14 @@ If you prefer an easier installation process using **Flatpak**, you can visit th
 
 This fork provides a more streamlined installation experience through Flatpak, making it more accessible for users unfamiliar with manual setup.
 
-**Special Thanks [@relativemodder](https://github.com/relativemodder),** for creating a fork that makes installation easier 🙌
+**Special thanks to [@relativemodder](https://github.com/relativemodder)** for creating a fork that makes installation easier 🙌
 
 ---
 
 ### Plugin Installation
 
-**Important Notice:** Due to copyright and software piracy concerns, plugin files are not included in this repository.
+**Important Notice:**
+Due to copyright and software piracy concerns, plugin files are **not included** in this repository.
 
 To obtain the required plugin files:
 
@@ -119,6 +146,34 @@ To obtain the required plugin files:
 
 * **Telegram:** [@cutefishaep](https://t.me/cutefishaep)
 * **DM for plugin and 2024 file**
+
+---
+
+### 🪟 Microsoft Components Requirement
+
+AeNux requires `msxml3.dll` and `msxml3r.dll` — proprietary components from **Microsoft XML Core Services (MSXML 3.0)** — to enable proper functionality of Adobe After Effects under Wine.
+
+Due to licensing restrictions and compatibility requirements, **these files are not distributed** with AeNux.
+Users must obtain them from their own licensed copy of Windows (preferably **Windows 8.1**) or another legal Microsoft source.
+
+
+> ⚠️ **Legal Notice:**
+> These Microsoft components remain the property of Microsoft Corporation.
+> AeNux does **not** include or distribute them — users must provide their own files.
+
+---
+
+### Additional Bundled Tools
+
+The following components are included or referenced within AeNux:
+
+| Component                                                  | Source / Credit                                                  |
+| ---------------------------------------------------------- | ---------------------------------------------------------------- |
+| **VC Redist (All Versions)**                               | Packaged installer by [TechPowerUp](https://www.techpowerup.com) |
+| **Wine & Winetricks (Runner)**                             | Official WineHQ and Winetricks projects                          |
+| **Microsoft XML Components (`msxml3.dll`, `msxml3r.dll`)** | © Microsoft Corporation — not redistributed                      |
+
+Each respective component remains the property of its original creator and is used in accordance with their terms and licenses.
 
 ---
 
@@ -142,11 +197,15 @@ To obtain the required plugin files:
 
 ## 📄 License
 
-This project is licensed for educational and personal use exclusively. Commercial redistribution or unauthorized use is strictly prohibited.
+This project is licensed for **educational and personal use** exclusively.
+Commercial redistribution or unauthorized use is strictly prohibited.
 
 **Copyright Notice:**
 This repository does not contain any proprietary software, plugins, or copyrighted material.
 Users are responsible for obtaining legitimate copies of all required software components.
+
+> **Additional Notice:**
+> Certain third-party files (e.g., Microsoft DLLs, Wine, Winetricks, VC Redist) remain under the ownership and license of their respective copyright holders.
 
 ---
 
@@ -156,8 +215,16 @@ Special gratitude to **MattKC** for making this project feasible through his pio
 **MattKC Forum Reference:** [https://forum.mattkc.com/viewtopic.php?t=337](https://forum.mattkc.com/viewtopic.php?t=337)
 
 A very special **thank you** also to **[@relativemodder](https://github.com/relativemodder)**
-for forking the project and developing the **Aegnux**,
+for forking the project and developing **AeGnux**,
 which greatly simplifies installation for the Linux community. ❤️🐧
+
+---
+
+## 💬 Developer Disclaimer
+
+This is my **first GitHub project**, and most of the code was **assisted by AI**.
+However, I’ve worked hard to **clean and refine** the code to ensure it remains functional and organized.
+If you encounter any issues or errors in this repository, please **submit an issue** — I will review, evaluate, and improve the project accordingly.
 
 ---
 
