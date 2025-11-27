@@ -513,7 +513,7 @@ class PluginThread(QThread):
 class AeNuxApp(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("AeNux Halloween Edition")
+        self.setWindowTitle("Aenux")
         self.resize(520, 350)
         self.config = self._load_config()
         self.install_thread = None
@@ -620,7 +620,7 @@ class AeNuxApp(QWidget):
         root.addLayout(folder_row)
 
         # Footer
-        footer = QLabel('Made with 🎃 by cutefishaep')
+        footer = QLabel('Made with 💝 by cutefishaep')
         footer.setAlignment(Qt.AlignmentFlag.AlignCenter)
         root.addWidget(footer)
 
