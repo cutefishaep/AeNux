@@ -12,58 +12,55 @@
 
 </div>
 
+---
+
 ## 🚀 Overview
 
-**AeNux** is a sophisticated Linux solution that enables seamless execution of **Adobe After Effects** through **Wine** and **Winetricks**.
-Designed for creative professionals who prefer Linux environments, this project bridges the gap between Windows-based creative software and Linux ecosystems.
+**AeNux** is a Linux-based solution that enables **Adobe After Effects** to run through **Wine** and **Winetricks**.
+Created for creative professionals working on Linux, it bridges the gap between Windows-exclusive creative software and Linux systems.
 
-> ⚠️ **Educational Purpose Notice**
-> This project is intended for educational and experimental use only.
-> Please respect software licensing agreements and use responsibly.
-> The primary objective is to explore Linux compatibility for creative applications.
+> ⚠️ **Notice:**
+> AeNux is for educational and experimental purposes only.
+> Please follow all software licensing rules and use responsibly.
 
 ---
 
 ## ⚠️ Known Limitations
 
-* ❌ **Hardware Acceleration** - OpenCL support limited (NVIDIA GPUs excepted)
-* 🎨 **UI Rendering** - Occasional flickering with certain plugins (e.g., Flow)
-* 💥 **Memory Management** - Potential crashes under heavy RAM usage (Debian excluded)
-* 🐛 **Bug Reports** - Please submit issues for any discovered anomalies
+* ❌ **Hardware Acceleration** — Limited OpenCL support (except NVIDIA GPUs)
+* 🎨 **UI Rendering** — Occasional flickering with certain plugins (e.g., Flow)
+* 💥 **Memory Issues** — Potential crashes during heavy RAM usage
+* 🐛 **Bugs** — Report any issues you encounter
 
 ---
 
 ## 🖥️ Tested Environments
 
-| Component             | Specification                                                          |
-| --------------------- | ---------------------------------------------------------------------- |
-| **Operating Systems** | Linux Mint 22.1 Cinnamon, Debian 12, ElementaryOS 8.0.1, Ubuntu Budgie |
-| **Processor**         | 11th Gen Intel® Core™ i3-1115G4 @ 3.00GHz × 2                          |
-| **Graphics**          | Intel Corporation Tiger Lake-LP GT2 [UHD Graphics G4]                  |
-| **Memory**            | 8 GB RAM                                                               |
+| Component             | Specification                                                 |
+| --------------------- | ------------------------------------------------------------- |
+| **Operating Systems** | Linux Mint 22.1, Debian 12, ElementaryOS 8.0.1, Ubuntu Budgie |
+| **Processor**         | Intel® Core™ i3-1115G4 (11th Gen)                             |
+| **Graphics**          | Intel Tiger Lake-LP GT2 (UHD Graphics G4)                     |
+| **Memory**            | 8 GB RAM                                                      |
 
 ---
 
 ## 📋 Dependencies
 
-### System Dependencies
-
-Before running AeNux, ensure you have the following dependencies installed:
-
-**Ubuntu/Debian:**
+### Ubuntu / Debian
 
 ```bash
 sudo apt update
 sudo apt install wget unzip cabextract zenity python3 python3-pip python3-venv
 ```
 
-**Fedora:**
+### Fedora
 
 ```bash
 sudo dnf install wget unzip cabextract zenity python3 python3-pip
 ```
 
-**Arch Linux:**
+### Arch Linux
 
 ```bash
 sudo pacman -S wget unzip cabextract zenity python python-pip
@@ -73,178 +70,99 @@ sudo pacman -S wget unzip cabextract zenity python python-pip
 
 ## 🛠️ Installation Guide
 
-### Quick Installation
+### 1. Clone & Initialize
 
-1. **Clone and Initialize**
+```bash
+git clone https://github.com/cutefishaep/AeNux
+cd AeNux
+chmod +x run.sh
+./run.sh
+```
 
-   ```bash
-   git clone https://github.com/cutefishaep/AeNux
-   cd AeNux
-   chmod +x run.sh
-   ./run.sh
-   ```
+### 2. Provide Required Microsoft Components
 
-   *Ensure you're within the cloned repository directory.*
+AeNux requires **msxml3.dll** and **msxml3r.dll**, which you must supply yourself from a licensed Windows installation:
 
-2. **Provide Required Microsoft Components**
+```
+C:\Windows\System32\
+```
 
-   AeNux requires two Microsoft XML components for proper functionality:
+Copy both files into:
 
-   * `msxml3.dll`
-   * `msxml3r.dll`
+```
+/asset/System32
+```
 
-   Locate these files on your Windows system at:
+> ⚠️ These files are **not included** in AeNux due to licensing restrictions.
 
-   ```
-   C:\Windows\System32\
-   ```
+### 3. Launch AeNux GUI
 
-   Then, copy both files into the following directory inside your AeNux folder:
-
-   ```
-   /asset/System32
-   ```
-
-   > ⚠️ **Important:**
-   > These files are proprietary Microsoft components and are **not included** with AeNux.
-   > You must provide them from your own licensed copy of Windows (recommended: **Windows 8.1**).
-
-3. **Run AeNux GUI**
-
-   * Click the **"Install"** button in the top-right corner
-   * Select your local AeNux zip file when prompted
-   * Enable the **"Apply AeNux Patch"** checkbox
-   * Click **"Run AeNux"** to launch AeNux
+* Click **Install**
+* Select your local AeNux `.zip` file
+* Enable **Apply AeNux Patch**
+* Click **Run AeNux**
 
 ---
 
-### 🧩 Flatpak Installation (Simplified Method)
+## 🧩 Flatpak Installation (Simplified)
 
-If you prefer an easier installation process using **Flatpak**, you can visit the forked project by **@relativemodder**:
+A simplified Flatpak-based installation is available through the fork by **@relativemodder**:
 
-👉 **[AeGnux](https://github.com/relativemodder/aegnux)**
-
-This fork provides a more streamlined installation experience through Flatpak, making it more accessible for users unfamiliar with manual setup.
-
-**Special thanks to [@relativemodder](https://github.com/relativemodder)** for creating a fork that makes installation easier 🙌
+👉 **AeGnux:** [https://github.com/relativemodder/aegnux](https://github.com/relativemodder/aegnux)
 
 ---
 
-### Plugin Installation
+## Plugin Installation
 
-**Important Notice:**
-Due to copyright and software piracy concerns, plugin files are **not included** in this repository.
+Plugins are **not included** due to copyright restrictions.
 
-To obtain the required plugin files:
+To install plugins:
 
-1. Launch AeNux GUI
-2. Click the **"Install Plugin"** button
-3. Select your local plugin zip file when prompted
-4. Follow the installation process
+1. Open the AeNux GUI
+2. Click **Install Plugin**
+3. Select your local plugin `.zip` file
+4. Follow the on-screen steps
 
-**For plugin file access and additional information, please contact:**
+**For plugin-related inquiries:**
 
-* **Telegram:** [@cutefishaep](https://t.me/cutefishaep)
-* **DM for plugin and 2024 file**
+* Telegram: **@cutefishaep**
 
 ---
 
-### 🪟 Microsoft Components Requirement
+## Uninstallation
 
-AeNux requires `msxml3.dll` and `msxml3r.dll` — proprietary components from **Microsoft XML Core Services (MSXML 3.0)** — to enable proper functionality of Adobe After Effects under Wine.
-
-Due to licensing restrictions and compatibility requirements, **these files are not distributed** with AeNux.
-Users must obtain them from their own licensed copy of Windows (preferably **Windows 8.1**) or another legal Microsoft source.
-
-
-> ⚠️ **Legal Notice:**
-> These Microsoft components remain the property of Microsoft Corporation.
-> AeNux does **not** include or distribute them — users must provide their own files.
-
----
-
-### Additional Bundled Tools
-
-The following components are included or referenced within AeNux:
-
-| Component                                                  | Source / Credit                                                  |
-| ---------------------------------------------------------- | ---------------------------------------------------------------- |
-| **VC Redist (All Versions)**                               | Packaged installer by [TechPowerUp](https://www.techpowerup.com) |
-| **Wine & Winetricks (Runner)**                             | Official WineHQ and Winetricks projects                          |
-| **Microsoft XML Components (`msxml3.dll`, `msxml3r.dll`)** | © Microsoft Corporation — not redistributed                      |
-
-Each respective component remains the property of its original creator and is used in accordance with their terms and licenses.
-
----
-
-### Uninstallation
-
-1. Launch AeNux from your application menu
-2. Click **"Uninstall"** in the top-right corner
-3. Delete the cloned repository directory
-
----
-
-## 📋 Important Notes
-
-* **File Requirements**: You must provide your own AeNux and plugin zip files
-* **Legal Compliance**: Ensure you have proper licenses for all software and plugins
-* **Wine Configuration**: Installation methods may vary across Linux distributions. Adjust instructions in `run_qt6.py` accordingly
-* **Swap Memory**: Disabling swap is strongly recommended to preserve SSD longevity
-* **Performance**: Results may vary based on hardware configuration and Linux distribution
-
----
-
-## 📄 License
-
-This project is licensed for **educational and personal use** exclusively.
-Commercial redistribution or unauthorized use is strictly prohibited.
-
-**Copyright Notice:**
-This repository does not contain any proprietary software, plugins, or copyrighted material.
-Users are responsible for obtaining legitimate copies of all required software components.
-
-> **Additional Notice:**
-> Certain third-party files (e.g., Microsoft DLLs, Wine, Winetricks, VC Redist) remain under the ownership and license of their respective copyright holders.
+1. Open AeNux
+2. Click **Uninstall**
+3. Delete the project directory
 
 ---
 
 ## 🙏 Acknowledgments
 
-Special gratitude to **MattKC** for making this project feasible through his pioneering work.
-**MattKC Forum Reference:** [https://forum.mattkc.com/viewtopic.php?t=337](https://forum.mattkc.com/viewtopic.php?t=337)
+Special thanks to **MattKC** for his pioneering work.
+Forum reference: [https://forum.mattkc.com/viewtopic.php?t=337](https://forum.mattkc.com/viewtopic.php?t=337)
 
-A very special **thank you** also to **[@relativemodder](https://github.com/relativemodder)**
-for forking the project and developing **AeGnux**,
-which greatly simplifies installation for the Linux community. ❤️🐧
+Huge thanks also to **@relativemodder** for creating the AeGnux fork, making installation much simpler for the community. ❤️🐧
 
 ---
 
 ## 💬 Developer Disclaimer
 
-This is my **first GitHub project**, and most of the code was **assisted by AI**.
-However, I’ve worked hard to **clean and refine** the code to ensure it remains functional and organized.
-If you encounter any issues or errors in this repository, please **submit an issue** — I will review, evaluate, and improve the project accordingly.
+This is my first GitHub project.
+While AI assistance was used during development, the code has been cleaned and refined manually.
+Please submit issues if you encounter any problems, I will continue improving AeNux.
 
 ---
 
 <div align="center">
-
-**Happy Editing on Linux! 🎬🐧**
-
+  <strong>Happy Editing on Linux! 🎬🐧</strong>
 </div>
 
 ---
 
 ## 🔧 Support
 
-For technical support, plugin access, or additional information:
-
-* **Telegram:** [@cutefishaep](https://t.me/cutefishaep)
-* **GitHub Issues:** For bug reports and feature requests
-
-**Disclaimer:**
-The maintainers are not responsible for any licensing violations.
-Users must ensure they comply with all software licensing agreements.
+* Telegram: **@cutefishaep**
+* GitHub Issues: Bug reports & feature requests
 
 ---
