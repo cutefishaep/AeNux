@@ -35,6 +35,9 @@ check_system32_assets() {
 
 # Check UV installation
 check_uv() {
+    # Add common UV paths to current PATH for this session
+    export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+    
     if ! command -v uv &> /dev/null; then
         print_error "UV is not installed."
 
@@ -42,26 +45,89 @@ check_uv() {
         echo
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             print_status "Installing UV..."
-            curl -LsSf https://astral.sh/uv/install.sh | bash
-
-            if [ -f "$HOME/.local/bin/uv" ]; then
-                print_success "UV installed successfully."
+            
+            # Install UV
+            if curl -LsSf https://astral.sh/uv/install.sh | sh; then
+                print_success "UV installation script completed."
                 
-                # Add to PATH if not already present
-                if ! echo "$PATH" | grep -q "$HOME/.local/bin"; then
-                    print_status "Adding ~/.local/bin to PATH..."
-                    echo "export PATH=\"$HOME/.local/bin:\$PATH\"" >> ~/.bashrc
-                    source ~/.bashrc
+                # Reload PATH from common locations
+                if [ -f "$HOME/.local/bin/uv" ]; then
+                    export PATH="$HOME/.local/bin:$PATH"
+                    print_success "UV found at $HOME/.local/bin/uv"
+                elif [ -f "$HOME/.cargo/bin/uv" ]; then
+                    export PATH="$HOME/.cargo/bin:$PATH"
+                    print_success "UV found at $HOME/.cargo/bin/uv"
+                fi
+                
+                # Verify UV is now accessible
+                if command -v uv &> /dev/null; then
+                    print_success "UV is now available: $(which uv)"
+                    
+                    # Add to shell config if not already present
+                    add_uv_to_shell_config
+                    
+                    print_warning "UV has been added to your PATH for this session."
+                    print_warning "For permanent effect, restart your terminal or run: source ~/.bashrc"
+                else
+                    print_error "UV installation completed but command not found."
+                    print_error "Please restart your terminal and run this script again."
+                    exit 1
                 fi
             else
                 print_error "UV installation failed."
+                print_error "Please install manually: curl -LsSf https://astral.sh/uv/install.sh | sh"
                 exit 1
             fi
         else
             print_error "UV is required to run AeNux."
-            echo "Install manually: curl -LsSf https://astral.sh/uv/install.sh | bash"
+            echo "Install manually: curl -LsSf https://astral.sh/uv/install.sh | sh"
             exit 1
         fi
+    else
+        print_success "UV is already installed: $(which uv)"
+    fi
+}
+
+# Add UV to shell configuration files
+add_uv_to_shell_config() {
+    local uv_path_line='export PATH="$HOME/.local/bin:$PATH"'
+    local added=0
+    
+    # Add to .bashrc if it exists and doesn't already contain the path
+    if [ -f "$HOME/.bashrc" ]; then
+        if ! grep -q "$HOME/.local/bin" "$HOME/.bashrc" 2>/dev/null; then
+            print_status "Adding UV to ~/.bashrc..."
+            echo "" >> "$HOME/.bashrc"
+            echo "# Added by AeNux installer" >> "$HOME/.bashrc"
+            echo "$uv_path_line" >> "$HOME/.bashrc"
+            added=1
+        fi
+    fi
+    
+    # Add to .bash_profile if it exists and doesn't already contain the path
+    if [ -f "$HOME/.bash_profile" ]; then
+        if ! grep -q "$HOME/.local/bin" "$HOME/.bash_profile" 2>/dev/null; then
+            print_status "Adding UV to ~/.bash_profile..."
+            echo "" >> "$HOME/.bash_profile"
+            echo "# Added by AeNux installer" >> "$HOME/.bash_profile"
+            echo "$uv_path_line" >> "$HOME/.bash_profile"
+            added=1
+        fi
+    fi
+    
+    # Add to .zshrc if using zsh
+    if [ -f "$HOME/.zshrc" ]; then
+        if ! grep -q "$HOME/.local/bin" "$HOME/.zshrc" 2>/dev/null; then
+            print_status "Adding UV to ~/.zshrc..."
+            echo "" >> "$HOME/.zshrc"
+            echo "# Added by AeNux installer" >> "$HOME/.zshrc"
+            echo "$uv_path_line" >> "$HOME/.zshrc"
+            added=1
+        fi
+    fi
+    
+    if [ $added -eq 1 ]; then
+        print_success "UV path added to shell configuration"
     fi
 }
 
