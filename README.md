@@ -34,7 +34,6 @@ Created for creative professionals working on Linux, it provides an automated so
 ### ⚙️ AeNux Configurator
 - Manage Wine prefix and runner paths
 - Kill Wine processes
-- Configure theme and colors
 - Open plugin, preset, and runner folders
 - Reinstall or patch runner
 - Uninstall AeNux
@@ -44,7 +43,6 @@ Created for creative professionals working on Linux, it provides an automated so
 - Install CEP extensions
 - Run EXE installers via Wine
 - Copy presets and scripts
-- Registry key management
 
 ### 🏃 AeNux Runner
 - Run After Effects application
@@ -111,46 +109,17 @@ chmod +x run.sh
 
 ### 2. Provide Required Microsoft Components
 
-AeNux requires **msxml3.dll** and **msxml3r.dll**, which you must supply yourself from a licensed Windows installation:
+AeNux requires **msxml3.dll** and **msxml3r.dll**, which you must supply yourself from a Windows installation:
 
 ```
 C:\Windows\System32\
 ```
 
-Copy both files into:
+Copy both files to whatever you want
 
-```
-/asset/System32
-```
+### 3. Launch AeNux GUI
 
-> ⚠️ These files are **not included** in AeNux due to licensing restrictions.
-
-### 3. Automatic Dependency Installation
-
-The first time you run `./run.sh`, it will:
-- Check Python version
-- Create virtual environment with system packages
-- Ask for permission to install dependencies
-- Install all required system and Python packages
-
-Or run manually:
-```bash
-./run.sh -d
-```
-
-### 4. Launch AeNux GUI
-
-Simply run:
-```bash
-./run.sh
-```
-
-Interactive menu options:
-- `1` - Run AeNux Installer
-- `2` - Run AeNux Configurator
-- `3` - Run AeNux (Execute After Effects)
-- `4` - Run Plugin Installer
-- `5` - Install/Reinstall Dependencies
+Simply run from application menu
 
 Or use command-line flags:
 ```bash
@@ -165,8 +134,6 @@ Or use command-line flags:
 
 ## 🧩 Plugin Installation
 
-Plugins are **not included** due to copyright restrictions.
-
 To install plugins:
 
 1. Open the AeNux GUI: `./run.sh`
@@ -179,10 +146,6 @@ To install plugins:
    - **Scripts**: `PlugIn/scripts/`
 
 4. Use the Plugin Installer GUI to select and install
-
-**For plugin-related inquiries:**
-* Telegram: **@cutefishaep**
-
 ---
 
 ## 📁 Project Structure
@@ -254,8 +217,7 @@ Recreate shortcuts using Configurator:
    ./run.sh
    ```
 2. Select option `2` - Run AeNux Configurator
-3. Click **Uninstall AeNux**
-4. Delete the project directory
+3. Click **Uninstall**
 
 ---
 
@@ -267,14 +229,6 @@ Forum reference: [https://forum.mattkc.com/viewtopic.php?t=337](https://forum.ma
 Huge thanks also to **@relativemodder** for creating the AeGnux fork, making installation much simpler for the community. ❤️🐧
 
 Additional thanks to the **Wine Project** and **GTK Project** for their amazing work.
-
----
-
-## 💬 Developer Disclaimer
-
-This is my first GitHub project.
-While AI assistance was used during development, the code has been cleaned and refined manually.
-Please submit issues if you encounter any problems, I will continue improving AeNux.
 
 ---
 
