@@ -239,13 +239,13 @@ class PluginInstaller:
         cancel_button.connect("clicked", self.on_cancel)
         button_box.pack_start(cancel_button, False, False, 0)
         
+        refresh_button = Gtk.Button(label="Refresh")
+        refresh_button.connect("clicked", self.on_refresh)
+        button_box.pack_start(refresh_button, False, False, 0)
+        
         install_selected_button = Gtk.Button(label="Install Selected")
         install_selected_button.connect("clicked", self.on_install_selected)
         button_box.pack_start(install_selected_button, False, False, 0)
-        
-        install_all_button = Gtk.Button(label="Install All")
-        install_all_button.connect("clicked", self.on_install_all)
-        button_box.pack_start(install_all_button, False, False, 0)
         
         self.installer_window.connect("destroy", Gtk.main_quit)
         print("[DEBUG] Showing window")
@@ -269,6 +269,27 @@ class PluginInstaller:
         """Handle cancel button"""
         self.installer_window.destroy()
     
+    def on_refresh(self, widget):
+        """Handle refresh button - rescan plugins and update list"""
+        print("[DEBUG] Refresh button clicked")
+        # Rescan plugins
+        self.scan_plugins()
+        
+        # Clear existing store
+        self.store.clear()
+        
+        # Repopulate store with updated plugin list
+        for category in ['Installer', 'AEX', 'CEP', 'Presets', 'Scripts']:
+            for plugin in self.plugins.get(category, []):
+                self.store.append([False, plugin['name'], category])
+                print(f"[DEBUG] Added to store after refresh: {plugin['name']} ({category})")
+        
+        # Uncheck select all checkbox
+        if self.select_all_checkbox:
+            self.select_all_checkbox.set_active(False)
+        
+        print("[DEBUG] Plugin list refreshed successfully")
+    
     def on_install_selected(self, widget):
         """Handle install selected button"""
         print("[DEBUG] Install Selected clicked")
@@ -290,23 +311,7 @@ class PluginInstaller:
         # Hide installer window instead of destroying it
         self.installer_window.hide()
         self.start_installation(selected)
-    
-    def on_install_all(self, widget):
-        """Handle install all button"""
-        print("[DEBUG] Install All clicked")
-        selected = []
-        for row in self.store:
-            selected.append({
-                'name': row[1],
-                'category': row[2]
-            })
-            print(f"[DEBUG] Selected: {row[1]} ({row[2]})")
-        
-        print(f"[DEBUG] Total selected: {len(selected)}")
-        # Hide installer window instead of destroying it
-        self.installer_window.hide()
-        self.start_installation(selected)
-    
+           
     def start_installation(self, selected_plugins):
         """Start the installation process"""
         print("[DEBUG] start_installation called")
@@ -430,7 +435,7 @@ class PluginInstaller:
             GLib.idle_add(self.show_installation_error, str(e))
     
     def install_exe(self, exe_path):
-        """Install .exe file using wine"""
+        """Install .exe file using wine dengan parameter silent"""
         print(f"[DEBUG] install_exe called for: {exe_path}")
         wine_bin = os.path.join(self.config['wine_path'], 'bin', 'wine')
         wineprefix = self.config['wineprefix']
@@ -444,17 +449,62 @@ class PluginInstaller:
         env = os.environ.copy()
         env['WINEPREFIX'] = wineprefix
         
-        print(f"[DEBUG] Running: {wine_bin} {exe_path}")
-        result = subprocess.run(
-            [wine_bin, exe_path],
-            env=env,
-            capture_output=True,
-            text=True
-        )
+        # Tambahkan parameter /verysilent /suppressmsgboxes
+        exe_name = os.path.basename(exe_path).lower()
         
-        print(f"[DEBUG] Wine return code: {result.returncode}")
-        if result.returncode != 0:
-            raise Exception(f"Failed to install {os.path.basename(exe_path)}: {result.stderr}")
+        # Tentukan parameter berdasarkan jenis installer
+        if exe_name.startswith(('keygen', 'crack', 'patch')):
+            # Untuk keygen/crack, jangan gunakan silent parameter
+            args = [wine_bin, exe_path]
+            self.add_log(f"  Running installer (normal mode): {exe_name}\n")
+        else:
+            # Untuk installer biasa, gunakan parameter silent
+            args = [wine_bin, exe_path, '/verysilent', '/suppressmsgboxes']
+            self.add_log(f"  Running installer (silent mode): {exe_name}\n")
+        
+        print(f"[DEBUG] Running: {' '.join(args)}")
+        
+        # Tambahkan timeout untuk mencegah hang
+        try:
+            result = subprocess.run(
+                args,
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=300,  # Timeout 5 menit
+                check=False  # Jangan raise exception otomatis
+            )
+            
+            print(f"[DEBUG] Wine return code: {result.returncode}")
+            print(f"[DEBUG] Wine stdout: {result.stdout[:200]}...")
+            print(f"[DEBUG] Wine stderr: {result.stderr[:200]}...")
+            
+            # Log output untuk debugging
+            if result.stdout:
+                self.add_log(f"  Output: {result.stdout[:500]}\n")
+            if result.stderr:
+                self.add_log(f"  Errors: {result.stderr[:500]}\n")
+            
+            # Cek apakah installer berhasil (return code 0 atau 3010 umum untuk restart required)
+            if result.returncode not in [0, 3010, 1641, 3011]:
+                # Beberapa installer mengembalikan code khusus
+                # 3010: RESTART_REQUIRED, 1641: SUCCESS_REBOOT_INITIATED
+                error_msg = f"Installer returned code {result.returncode}"
+                if result.stderr:
+                    error_msg += f": {result.stderr[:200]}"
+                raise Exception(f"Failed to install {os.path.basename(exe_path)}: {error_msg}")
+            
+            # Tunggu sebentar agar installer selesai
+            import time
+            time.sleep(2)
+            
+        except subprocess.TimeoutExpired:
+            self.add_log(f"  Warning: Installer timeout, mungkin masih berjalan di background\n")
+            print(f"[WARNING] Installer timeout: {exe_path}")
+            # Tidak raise exception, anggap berhasil
+        
+        except Exception as e:
+            raise Exception(f"Failed to install {os.path.basename(exe_path)}: {str(e)}")
     
     def install_aex(self, aex_path, aex_type):
         """Copy AEX files/folders to aenux Plug-Ins folder"""

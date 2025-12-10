@@ -217,6 +217,16 @@ run AppShortcutMake.sh
 
 ---
 
+## Too much annoying plugin icon
+
+1. open 
+   ```bash
+   ~/.local/share/applications/wine
+   ```
+2. remove the .desktop file
+
+---
+
 ## 🙏 Acknowledgments
 
 Special thanks to **MattKC** for his pioneering work.
