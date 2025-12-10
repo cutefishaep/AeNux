@@ -1,229 +1,280 @@
 #!/bin/bash
 
-# Color definitions
+# AeNux Runner - Main Entry Point
+# Handles venv setup, dependency installation, and script execution
+
+set -e
+
+# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# Logging functions
-print_status() { echo -e "${BLUE}[INFO]${NC} $1"; }
-print_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
-print_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
-print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+# Directories
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV_DIR="$SCRIPT_DIR/venv"
+REQUIREMENTS_FILE="$SCRIPT_DIR/requirements.txt"
+SCRIPTS_DIR="$SCRIPT_DIR/script"
+PLUGIN_DIR="$SCRIPT_DIR/PlugIn"
 
-# Check if asset/System32 directory exists
-check_system32_assets() {
-    local system32_dir="$(dirname "$0")/asset/System32"
-    
-    if [ ! -d "$system32_dir" ]; then
-        print_error "asset/System32 directory not found at: $system32_dir"
-        
-        # Show Zenity error popup
-        zenity --error \
-               --title="Missing Required Files" \
-               --width=500 \
-               --height=200 \
-               --text="The asset/System32 directory was not found!\n\nThis directory contains essential DLL files required for AeNux to function properly.\n\nPlease copy the necessary DLL files from your Windows system.\n\nFor detailed instructions, visit:\ngithub.com/cutefishaep/AeNux\n\nAfter copying the required files, please run this script again."
-        
+# Functions
+print_header() {
+    echo -e "${BLUE}═══════════════════════════════════════${NC}"
+    echo -e "${BLUE}$1${NC}"
+    echo -e "${BLUE}═══════════════════════════════════════${NC}"
+}
+
+print_success() {
+    echo -e "${GREEN}[✓]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[✗]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[!]${NC} $1"
+}
+
+print_info() {
+    echo -e "${BLUE}[i]${NC} $1"
+}
+
+# Check Python availability
+check_python() {
+    if ! command -v python3 &> /dev/null; then
+        print_error "Python3 not found. Please install Python 3.6+"
         exit 1
+    fi
+    print_success "Python3 found: $(python3 --version)"
+}
+
+# Create or verify venv
+setup_venv() {
+    if [[ ! -d "$VENV_DIR" ]]; then
+        print_header "Creating Virtual Environment"
+        # Create venv with --system-site-packages to access system packages like gi
+        python3 -m venv --system-site-packages "$VENV_DIR"
+        print_success "Virtual Environment created at: $VENV_DIR"
     else
-        print_success "asset/System32 directory found"
+        print_success "Virtual Environment already exists"
     fi
 }
 
-# Check UV installation
-check_uv() {
-    # Add common UV paths to current PATH for this session
-    export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+# Ask user for dependency installation
+ask_install_deps() {
+    echo ""
+    print_info "Dependencies not installed in venv"
+    echo -e "${YELLOW}Would you like to install dependencies now? (y/n)${NC}"
+    read -p "> " -n 1 -r
+    echo ""
     
-    if ! command -v uv &> /dev/null; then
-        print_error "UV is not installed."
-
-        read -p "Do you want to install UV automatically? (y/N): " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            print_status "Installing UV..."
-            
-            # Install UV
-            if curl -LsSf https://astral.sh/uv/install.sh | sh; then
-                print_success "UV installation script completed."
-                
-                # Reload PATH from common locations
-                if [ -f "$HOME/.local/bin/uv" ]; then
-                    export PATH="$HOME/.local/bin:$PATH"
-                    print_success "UV found at $HOME/.local/bin/uv"
-                elif [ -f "$HOME/.cargo/bin/uv" ]; then
-                    export PATH="$HOME/.cargo/bin:$PATH"
-                    print_success "UV found at $HOME/.cargo/bin/uv"
-                fi
-                
-                # Verify UV is now accessible
-                if command -v uv &> /dev/null; then
-                    print_success "UV is now available: $(which uv)"
-                    
-                    # Add to shell config if not already present
-                    add_uv_to_shell_config
-                    
-                    print_warning "UV has been added to your PATH for this session."
-                    print_warning "For permanent effect, restart your terminal or run: source ~/.bashrc"
-                else
-                    print_error "UV installation completed but command not found."
-                    print_error "Please restart your terminal and run this script again."
-                    exit 1
-                fi
-            else
-                print_error "UV installation failed."
-                print_error "Please install manually: curl -LsSf https://astral.sh/uv/install.sh | sh"
-                exit 1
-            fi
-        else
-            print_error "UV is required to run AeNux."
-            echo "Install manually: curl -LsSf https://astral.sh/uv/install.sh | sh"
-            exit 1
-        fi
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        install_dependencies
+        return 0
     else
-        print_success "UV is already installed: $(which uv)"
+        print_warning "Dependencies not installed. Scripts may not run correctly."
+        return 1
     fi
 }
 
-# Add UV to shell configuration files
-add_uv_to_shell_config() {
-    local uv_path_line='export PATH="$HOME/.local/bin:$PATH"'
-    local added=0
+# Install dependencies
+install_dependencies() {
+    print_header "Installing Dependencies"
     
-    # Add to .bashrc if it exists and doesn't already contain the path
-    if [ -f "$HOME/.bashrc" ]; then
-        if ! grep -q "$HOME/.local/bin" "$HOME/.bashrc" 2>/dev/null; then
-            print_status "Adding UV to ~/.bashrc..."
-            echo "" >> "$HOME/.bashrc"
-            echo "# Added by AeNux installer" >> "$HOME/.bashrc"
-            echo "$uv_path_line" >> "$HOME/.bashrc"
-            added=1
-        fi
+    if [[ ! -f "$REQUIREMENTS_FILE" ]]; then
+        print_error "File requirements.txt not found"
+        exit 1
     fi
     
-    # Add to .bash_profile if it exists and doesn't already contain the path
-    if [ -f "$HOME/.bash_profile" ]; then
-        if ! grep -q "$HOME/.local/bin" "$HOME/.bash_profile" 2>/dev/null; then
-            print_status "Adding UV to ~/.bash_profile..."
-            echo "" >> "$HOME/.bash_profile"
-            echo "# Added by AeNux installer" >> "$HOME/.bash_profile"
-            echo "$uv_path_line" >> "$HOME/.bash_profile"
-            added=1
-        fi
+    # Install system dependencies FIRST (includes python3-gi)
+    print_info "Installing system dependencies..."
+    if command -v apt-get &> /dev/null; then
+        sudo apt-get update
+        sudo apt-get install -y python3-gi python3-gi-cairo gir1.2-gtk-3.0 cabextract
+        print_success "System dependencies installed"
+    else
+        print_error "apt-get not found. Please install manually:"
+        echo "  sudo apt-get install python3-gi python3-gi-cairo gir1.2-gtk-3.0 cabextract"
+        exit 1
     fi
     
-    # Add to .zshrc if using zsh
-    if [ -f "$HOME/.zshrc" ]; then
-        if ! grep -q "$HOME/.local/bin" "$HOME/.zshrc" 2>/dev/null; then
-            print_status "Adding UV to ~/.zshrc..."
-            echo "" >> "$HOME/.zshrc"
-            echo "# Added by AeNux installer" >> "$HOME/.zshrc"
-            echo "$uv_path_line" >> "$HOME/.zshrc"
-            added=1
-        fi
-    fi
+    # Activate venv and upgrade pip
+    source "$VENV_DIR/bin/activate"
+    pip install --upgrade pip setuptools wheel > /dev/null 2>&1
     
-    if [ $added -eq 1 ]; then
-        print_success "UV path added to shell configuration"
-    fi
+    # Install pip requirements
+    print_info "Installing Python dependencies from requirements.txt..."
+    pip install -r "$REQUIREMENTS_FILE"
+    
+    deactivate
+    print_success "All dependencies installed successfully"
 }
 
-# Check PyQt6 runtime
-check_pyqt6() {
-    print_status "Checking PyQt6 availability..."
-    if ! uv run --with PyQt6 python -c "import PyQt6" 2>/dev/null; then
-        print_warning "PyQt6 not found. Installing stable version..."
-        uv pip install "PyQt6==6.6.1" "pyqt6-qt6==6.6.1"
-    fi
+# Check if dependencies are installed
+check_dependencies() {
+    source "$VENV_DIR/bin/activate"
+    python3 -c "import requests; import gi" 2>/dev/null
+    local result=$?
+    deactivate
+    return $result
 }
 
-# Install missing dependencies for Qt xcb plugin
-install_xcb_dependencies() {
-    print_status "Checking Qt xcb platform plugin dependencies..."
+# Run AeNux Installer
+run_installer() {
+    print_header "Running AeNux Installer"
+    source "$VENV_DIR/bin/activate"
+    python3 "$SCRIPTS_DIR/AeNux_Installer.py"
+    deactivate
+}
 
-    local dependencies=("libxcb1" "libxcb-cursor0" "libxcb-xinerama0" "libxcb-randr0" "libx11-xcb1" "libglu1-mesa")
+# Run AeNux Configurator
+run_configurator() {
+    print_header "Running AeNux Configurator"
+    source "$VENV_DIR/bin/activate"
+    python3 "$SCRIPTS_DIR/AeNux_Configurator.py"
+    deactivate
+}
 
-    for dep in "${dependencies[@]}"; do
-        if ! dpkg-query -l "$dep" &>/dev/null; then
-            print_warning "$dep is missing. Installing..."
-            sudo apt install -y "$dep"
-        fi
+# Run AeNux (run.py)
+run_aenux() {
+    print_header "Running AeNux"
+    source "$VENV_DIR/bin/activate"
+    python3 "$SCRIPTS_DIR/run.py"
+    deactivate
+}
+
+# Run Plugin Installer
+run_plugin_installer() {
+    print_header "Running Plugin Installer"
+    source "$VENV_DIR/bin/activate"
+    python3 "$PLUGIN_DIR/PlugIn.py"
+    deactivate
+}
+
+# Show menu
+show_menu() {
+    echo ""
+    print_header "AeNux Menu"
+    echo -e "${BLUE}1)${NC} Run AeNux Installer"
+    echo -e "${BLUE}2)${NC} Run AeNux Configurator"
+    echo -e "${BLUE}3)${NC} Run AeNux (run.py)"
+    echo -e "${BLUE}4)${NC} Run Plugin Installer"
+    echo -e "${BLUE}5)${NC} Install/Reinstall Dependencies"
+    echo -e "${BLUE}0)${NC} Exit"
+    echo ""
+    echo -e "${YELLOW}Choose menu (0-5):${NC}"
+}
+
+# Handle command-line arguments
+handle_args() {
+    case "${1:-}" in
+        -r|--run)
+            # Run mode: execute run.py with venv
+            run_aenux
+            exit 0
+            ;;
+        -i|--install)
+            # Install mode: run installer
+            run_installer
+            exit 0
+            ;;
+        -c|--config)
+            # Config mode: run configurator
+            run_configurator
+            exit 0
+            ;;
+        -p|--plugin)
+            # Plugin mode: run plugin installer
+            run_plugin_installer
+            exit 0
+            ;;
+        -d|--deps)
+            # Deps mode: install dependencies
+            install_dependencies
+            exit 0
+            ;;
+        -h|--help)
+            echo "AeNux Runner"
+            echo ""
+            echo "Usage: $0 [OPTION]"
+            echo ""
+            echo "Options:"
+            echo "  -r, --run      Run AeNux (run.py)"
+            echo "  -i, --install  Run AeNux Installer"
+            echo "  -c, --config   Run AeNux Configurator"
+            echo "  -p, --plugin   Run Plugin Installer"
+            echo "  -d, --deps     Install/reinstall dependencies"
+            echo "  -h, --help     Show this help message"
+            echo ""
+            echo "Without arguments will show interactive menu"
+            exit 0
+            ;;
+        *)
+            # Interactive menu mode
+            return 0
+            ;;
+    esac
+}
+
+# Main menu loop
+main_menu() {
+    while true; do
+        show_menu
+        read -p "" choice
+        
+        case $choice in
+            1)
+                run_installer
+                ;;
+            2)
+                run_configurator
+                ;;
+            3)
+                run_aenux
+                ;;
+            4)
+                run_plugin_installer
+                ;;
+            5)
+                install_dependencies
+                ;;
+            0)
+                print_info "Exiting..."
+                exit 0
+                ;;
+            *)
+                print_error "Invalid choice"
+                ;;
+        esac
     done
 }
 
-# Remove unnecessary dependencies
-remove_old_dependencies() {
-    print_status "Cleaning up dependencies..."
-
-    if dpkg-query -l "xcb-cursor0" &>/dev/null; then
-        print_status "Removing unnecessary 'xcb-cursor0' package..."
-        sudo apt-get remove --purge -y xcb-cursor0
-    fi
-
-    sudo apt-get clean
-}
-
-# Fix PyQt6 ABI if broken
-fix_pyqt6_if_broken() {
-    if uv run --with PyQt6 python -c "import PyQt6" 2>/dev/null; then
-        print_error "Detected PyQt6 ABI mismatch. Reinstalling..."
-        uv pip install --force-reinstall "PyQt6==6.6.1" "pyqt6-qt6==6.6.1"
-        print_status "Retrying AeNux launch..."
-        uv run run_qt6.py
-        exit $?
-    fi
-}
-
-# Run AeNux GUI
-run_app() {
-    print_status "Launching AeNux GUI..."
-
-    if [ ! -f "run_qt6.py" ]; then
-        print_error "run_qt6.py not found. Run from AeNux root directory."
-        exit 1
-    fi
-
-    export QT_QPA_PLATFORM_PLUGIN_PATH=/usr/lib/qt/plugins/platforms
-    uv run --with PyQt6 run_qt6.py
-    local app_exit=$?
-
-    if [ $app_exit -eq 0 ]; then
-        print_success "Application exited successfully."
-    else
-        print_error "Application exited with error code $app_exit."
-        fix_pyqt6_if_broken
-    fi
-}
-
-# Welcome message
-welcome_message() {
-    echo
-    print_status "Don't tell Aih Don't Bee about this"
-    echo "================================"
-    echo
-}
-
-# Cleanup on exit
-cleanup() {
-    echo
-    print_status "Shutting down AeNux..."
-    exit 0
-}
-
-# Main function
+# Main execution
 main() {
-    welcome_message
-    check_system32_assets  # Check for required System32 assets first
-    check_uv
-    check_pyqt6
-    install_xcb_dependencies
-    remove_old_dependencies
-    run_app
+    print_header "AeNux Runner"
+    
+    # Check Python
+    check_python
+    
+    # Setup venv
+    setup_venv
+    
+    # Handle command-line arguments
+    handle_args "$@"
+    
+    # Check dependencies in interactive mode
+    if ! check_dependencies; then
+        ask_install_deps || true
+    else
+        print_success "All dependencies available"
+    fi
+    
+    # Show interactive menu
+    main_menu
 }
 
-# Set up signal handlers and run main
-trap cleanup SIGINT SIGTERM
+# Execute main
 main "$@"
