@@ -98,11 +98,9 @@ sudo pacman -S wget unzip cabextract zenity python python-pip
 
 ## 🛠️ Installation Guide
 
-### 1. Clone & Initialize
+### 1. Download & Extract file from release page and run by running this command
 
 ```bash
-git clone https://github.com/cutefishaep/AeNux
-cd AeNux
 chmod +x run.sh
 ./run.sh
 ```
