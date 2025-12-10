@@ -192,66 +192,37 @@ class AeNuxInstaller:
             'winetricks': 'https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks'
         }
         
-        debug_print(f"Starting download process to: {temp_dir}")
-        debug_print(f"Total files to download: {len(urls)}")
+        debug_print(f"Downloading {len(urls)} files...")
         
         for idx, (filename, url) in enumerate(urls.items(), 1):
             filepath = os.path.join(temp_dir, filename)
             
             if os.path.exists(filepath):
-                file_size = os.path.getsize(filepath)
-                debug_print(f"[{idx}/{len(urls)}] File already exists (cached): {filename} ({file_size} bytes)")
+                debug_print(f"[{idx}/{len(urls)}] {filename} (cached)")
                 continue
             
-            debug_print(f"[{idx}/{len(urls)}] Starting download: {filename}")
-            debug_print(f"  URL: {url}")
-            debug_print(f"  Destination: {filepath}")
+            debug_print(f"[{idx}/{len(urls)}] Downloading {filename}...")
             
             try:
                 if filename == 'winetricks':
-                    # Use requests for winetricks
-                    debug_print(f"  Method: requests.get (text file)")
                     response = requests.get(url)
                     response.raise_for_status()
-                    debug_print(f"  Response status: {response.status_code}")
-                    
                     with open(filepath, 'w') as f:
                         f.write(response.text)
-                    
-                    file_size = os.path.getsize(filepath)
-                    debug_print(f"  Downloaded successfully: {filename} ({file_size} bytes)")
-                    
-                    # Make executable
                     os.chmod(filepath, os.stat(filepath).st_mode | stat.S_IEXEC)
-                    debug_print(f"  File made executable")
                 else:
-                    # For binary files, using urlretrieve with progress callback
-                    debug_print(f"  Method: urlretrieve (binary file)")
-                    
-                    def download_progress(block_num, block_size, total_size):
-                        downloaded = block_num * block_size
-                        if total_size > 0:
-                            percent = min(downloaded * 100 // total_size, 100)
-                            debug_print(f"  Progress: {downloaded}/{total_size} bytes ({percent}%)")
-                    
-                    urlretrieve(url, filepath, reporthook=download_progress)
-                    
-                    file_size = os.path.getsize(filepath)
-                    debug_print(f"  Downloaded successfully: {filename} ({file_size} bytes)")
+                    urlretrieve(url, filepath)
                     
             except Exception as e:
-                debug_print(f"  ERROR downloading {filename}: {type(e).__name__}: {e}")
-                debug_print(f"  Failed file path: {filepath}")
-                # Clean up partial download
+                debug_print(f"ERROR: Failed to download {filename}: {e}")
                 if os.path.exists(filepath):
                     try:
                         os.remove(filepath)
-                        debug_print(f"  Cleaned up partial download")
-                    except Exception as cleanup_e:
-                        debug_print(f"  Could not clean up partial: {cleanup_e}")
+                    except:
+                        pass
                 raise
         
-        debug_print(f"All downloads completed successfully")
+        debug_print(f"Downloads completed")
     
     def extract_aenux(self):
         """Extract AeNux"""
@@ -265,23 +236,38 @@ class AeNuxInstaller:
         """Extract Wine"""
         wine_file = os.path.join(temp_dir, 'wine-10.20-amd64-wow64.tar.xz')
         wine_dir = os.path.join(self.user_location, 'wine')
+        
+        if not os.path.exists(wine_file):
+            raise Exception(f"Wine archive not found: {wine_file}")
+        
         os.makedirs(wine_dir, exist_ok=True)
         
-        with tarfile.open(wine_file, 'r:xz') as tar:
-            for member in tar.getmembers():
-                if '/' in member.name:
-                    member.name = member.name.split('/', 1)[1]
-                if member.name:
-                    tar.extract(member, wine_dir)
-        debug_print(f"Wine extracted")
+        debug_print(f"Extracting Wine from {wine_file}...")
+        try:
+            with tarfile.open(wine_file, 'r:xz') as tar:
+                for member in tar.getmembers():
+                    if '/' in member.name:
+                        member.name = member.name.split('/', 1)[1]
+                    if member.name:
+                        tar.extract(member, wine_dir)
+            debug_print("Wine extracted successfully")
+        except Exception as e:
+            raise Exception(f"Failed to extract Wine: {str(e)}")
     
     def copy_winetricks(self, temp_dir):
         """Copy winetricks"""
         src = os.path.join(temp_dir, 'winetricks')
         dst = os.path.join(self.user_location, 'wine', 'bin', 'winetricks')
+        
+        if not os.path.exists(src):
+            raise Exception(f"Winetricks source not found: {src}")
+        
+        # Ensure destination directory exists
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        
         shutil.copy2(src, dst)
         os.chmod(dst, os.stat(dst).st_mode | stat.S_IEXEC)
-        debug_print(f"Winetricks copied")
+        debug_print(f"Winetricks copied and made executable")
     
     def setup_wine(self):
         """Setup Wine prefix"""
@@ -289,10 +275,20 @@ class AeNuxInstaller:
         wine_bin = os.path.join(self.user_location, 'wine', 'bin', 'wine')
         os.makedirs(prefix, exist_ok=True)
         
+        if not os.path.exists(wine_bin):
+            raise Exception(f"Wine binary not found: {wine_bin}")
+        
         env = os.environ.copy()
         env['WINEPREFIX'] = prefix
-        subprocess.run([wine_bin, 'wineboot', '--init'], env=env, check=True)
-        debug_print(f"Wine prefix created")
+        
+        debug_print("Initializing Wine prefix...")
+        result = subprocess.run([wine_bin, 'wineboot', '--init'], env=env,
+                               capture_output=True, text=True, timeout=300)
+        if result.returncode != 0:
+            debug_print(f"Wineboot warning - return code: {result.returncode}")
+            debug_print(f"stderr: {result.stderr}")
+        
+        debug_print("Wine prefix created")
     
     def install_deps(self, temp_dir):
         """Install dependencies"""
@@ -303,23 +299,73 @@ class AeNuxInstaller:
         env = os.environ.copy()
         env['WINEPREFIX'] = prefix
         
+        # Verify winetricks exists and is executable
+        if not os.path.exists(tricks):
+            raise Exception(f"Winetricks not found at: {tricks}")
+        
+        if not os.access(tricks, os.X_OK):
+            debug_print(f"Making winetricks executable...")
+            os.chmod(tricks, os.stat(tricks).st_mode | stat.S_IEXEC)
+        
         # Wine Gecko
         gecko = os.path.join(temp_dir, 'wine-gecko-2.47.4-x86_64.msi')
+        if not os.path.exists(gecko):
+            raise Exception(f"Wine Gecko not found at: {gecko}")
+        
         debug_print("Installing wine-gecko...")
-        subprocess.run([wine, 'msiexec', '/i', gecko], env=env, check=True)
+        result = subprocess.run([wine, 'msiexec', '/i', gecko], env=env, 
+                               capture_output=True, text=True)
+        if result.returncode != 0:
+            debug_print(f"Wine Gecko install stderr: {result.stderr}")
+            debug_print(f"Wine Gecko install stdout: {result.stdout}")
         
         # VC Redist
         for arch in ['x64', 'x86']:
             vc = os.path.join(temp_dir, f'vc_redist.{arch}.exe')
+            if not os.path.exists(vc):
+                raise Exception(f"VC Redist {arch} not found at: {vc}")
+            
             debug_print(f"Installing VC Redist {arch}...")
-            subprocess.run([wine, vc, '/install', '/quiet', '/norestart'], env=env, check=True)
+            result = subprocess.run([wine, vc, '/install', '/quiet', '/norestart'], env=env,
+                                   capture_output=True, text=True)
+            if result.returncode != 0:
+                debug_print(f"VC Redist {arch} install stderr: {result.stderr}")
+                debug_print(f"VC Redist {arch} install stdout: {result.stdout}")
         
-        # Winetricks
-        debug_print("Installing dxvk + corefonts...")
-        subprocess.run([tricks, '-q', 'dxvk', 'corefonts'], env=env, check=True)
+        # Winetricks - with better error handling
+        debug_print("Installing dxvk...")
+        result = subprocess.run([tricks, 'dxvk'], env=env, 
+                               capture_output=True, text=True, timeout=300)
+        if result.returncode != 0:
+            debug_print(f"DXVK install warning - return code: {result.returncode}")
+            debug_print(f"stderr: {result.stderr}")
+            # Don't fail on dxvk, continue
         
-        debug_print("Installing gdiplus + fontsmooth...")
-        subprocess.run([tricks, '-q', 'gdiplus', 'fontsmooth=rgb'], env=env, check=True)
+        debug_print("Installing corefonts...")
+        result = subprocess.run([tricks, 'corefonts'], env=env,
+                               capture_output=True, text=True, timeout=300)
+        if result.returncode != 0:
+            debug_print(f"Corefonts install warning - return code: {result.returncode}")
+            debug_print(f"stderr: {result.stderr}")
+            # Don't fail on corefonts, continue
+        
+        debug_print("Installing gdiplus...")
+        result = subprocess.run([tricks, 'gdiplus'], env=env,
+                               capture_output=True, text=True, timeout=300)
+        if result.returncode != 0:
+            debug_print(f"GDIPlus install warning - return code: {result.returncode}")
+            debug_print(f"stderr: {result.stderr}")
+            # Don't fail on gdiplus, continue
+        
+        debug_print("Installing fontsmooth...")
+        result = subprocess.run([tricks, 'fontsmooth=rgb'], env=env,
+                               capture_output=True, text=True, timeout=300)
+        if result.returncode != 0:
+            debug_print(f"Fontsmooth install warning - return code: {result.returncode}")
+            debug_print(f"stderr: {result.stderr}")
+            # Don't fail on fontsmooth, continue
+        
+        debug_print("Dependency installation completed (warnings ignored)")
     
     def finalize(self, temp_dir):
         """Finalize installation"""
