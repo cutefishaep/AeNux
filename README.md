@@ -203,11 +203,9 @@ And verify the wine path in the Configurator.
    - Verify aenux_path exists
 
 ### Desktop shortcut not working
-Recreate shortcuts using Configurator:
-```bash
-./run.sh -c
-```
-
+   ```bash
+run AppShortcutMake.sh
+   ```
 ---
 
 ## Uninstallation
@@ -230,13 +228,6 @@ Huge thanks also to **@relativemodder** for creating the AeGnux fork, making ins
 
 Additional thanks to the **Wine Project** and **GTK Project** for their amazing work.
 
----
-
-<div align="center">
-  <strong>Happy Editing on Linux! 🎬🐧</strong>
-</div>
-
----
 
 ## 🔗 Support & Contact
 
@@ -248,4 +239,10 @@ Additional thanks to the **Wine Project** and **GTK Project** for their amazing 
 
 **Last Updated**: December 2025
 
-Made with ❤️ for the creative community on Linux
+---
+
+<div align="center">
+  <strong>Happy Editing on Linux! 🎬🐧</strong>
+</div>
+
+---
