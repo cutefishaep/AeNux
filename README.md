@@ -98,7 +98,7 @@ sudo pacman -S wget unzip cabextract zenity python python-pip
 
 ## 🛠️ Installation Guide
 
-### 1. Download & Extract file from release page and run by running this command
+### 1. Download & Extract file from release page and run this command.
 
 ```bash
 chmod +x run.sh
