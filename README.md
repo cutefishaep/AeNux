@@ -1,19 +1,27 @@
 # AeNux
 
-A comprehensive installer and configuration tool for running Adobe After Effects on Linux using Wine.
+<p align="center">
+  <img src="https://github.com/cutefishaep/AeNux/blob/main/asset/logo.png" alt="AeNux Logo" width="200"/><br>
+  <strong style="font-size: 100px">AeNux</strong>
+</p>
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Python](https://img.shields.io/badge/python-3.6+-blue.svg)
-![Platform](https://img.shields.io/badge/platform-Linux-lightgrey.svg)
+<div align="center">
 
-## Overview
+[![Linux Compatible](https://img.shields.io/badge/Linux-Compatible-brightgreen?style=for-the-badge&logo=linux)](https://www.linux.org)
+[![Wine](https://img.shields.io/badge/Wine-Compatible-7e0202?style=for-the-badge&logo=wine)](https://www.winehq.org)
 
-AeNux is a complete solution for installing and managing Adobe After Effects on Linux systems. It provides:
+</div>
 
-- **Easy Installation**: Automated setup of Wine, After Effects, and all dependencies
-- **Configuration Management**: GUI-based configuration for Wine prefix and plugin management
-- **Plugin Support**: Built-in plugin installer for AEX, CEP, scripts, and presets
-- **Virtual Environment**: Isolated Python environment with all required dependencies
+---
+
+## 🚀 Overview
+
+**AeNux** is a comprehensive installer and configuration tool that enables **Adobe After Effects** to run on **Linux** through **Wine** and **Winetricks**.
+Created for creative professionals working on Linux, it provides an automated solution for installation, configuration, and plugin management.
+
+> ⚠️ **Notice:**
+> AeNux is for educational and experimental purposes only.
+> Please follow all software licensing rules and use responsibly.
 
 ## Features
 
@@ -46,179 +54,139 @@ AeNux is a complete solution for installing and managing Adobe After Effects on 
 - Easy menu-based interface
 - Command-line support with flags
 
-## Requirements
+---
 
-### System Requirements
-- Linux (Ubuntu 20.04+ recommended)
-- Python 3.6+
-- GTK3 libraries
-- 50+ GB free disk space (for Wine + After Effects)
+## ⚠️ Known Limitations
 
-### Dependencies
-- python3-gi
-- python3-gi-cairo
-- gir1.2-gtk-3.0
-- cabextract
-- Wine (will be installed automatically)
+* ❌ **Hardware Acceleration** — Limited OpenCL support (except NVIDIA GPUs)
+* 🎨 **UI Rendering** — Occasional flickering with certain plugins (e.g., Flow)
+* 💥 **Memory Issues** — Potential crashes during heavy RAM usage
+* 🐛 **Bugs** — Report any issues you encounter
 
-## Installation
+---
 
-### Quick Start
+## 🖥️ Tested Environments
 
-1. **Clone the repository:**
+| Component             | Specification                                                 |
+| --------------------- | ------------------------------------------------------------- |
+| **Operating Systems** | Linux Mint 22.1, Debian 12, ElementaryOS 8.0.1, Ubuntu Budgie |
+| **Processor**         | Intel® Core™ i3-1115G4 (11th Gen)                             |
+| **Graphics**          | Intel Tiger Lake-LP GT2 (UHD Graphics G4)                     |
+| **Memory**            | 8 GB RAM                                                      |
+
+---
+
+## 📋 Dependencies
+
+### Ubuntu / Debian
+
 ```bash
-git clone https://github.com/cutefishaep/AeNux.git
+sudo apt update
+sudo apt install wget unzip cabextract zenity python3 python3-pip python3-venv
+```
+
+### Fedora
+
+```bash
+sudo dnf install wget unzip cabextract zenity python3 python3-pip
+```
+
+### Arch Linux
+
+```bash
+sudo pacman -S wget unzip cabextract zenity python python-pip
+```
+
+---
+
+## 🛠️ Installation Guide
+
+### 1. Clone & Initialize
+
+```bash
+git clone https://github.com/cutefishaep/AeNux
 cd AeNux
+chmod +x run.sh
+./run.sh
 ```
 
-2. **Run the installer:**
+### 2. Provide Required Microsoft Components
+
+AeNux requires **msxml3.dll** and **msxml3r.dll**, which you must supply yourself from a licensed Windows installation:
+
+```
+C:\Windows\System32\
+```
+
+Copy both files into:
+
+```
+/asset/System32
+```
+
+> ⚠️ These files are **not included** in AeNux due to licensing restrictions.
+
+### 3. Automatic Dependency Installation
+
+The first time you run `./run.sh`, it will:
+- Check Python version
+- Create virtual environment with system packages
+- Ask for permission to install dependencies
+- Install all required system and Python packages
+
+Or run manually:
+```bash
+./run.sh -d
+```
+
+### 4. Launch AeNux GUI
+
+Simply run:
 ```bash
 ./run.sh
 ```
 
-3. **Follow the interactive menu:**
-   - Select option `1` to run AeNux Installer
-   - Select your installation location
-   - Choose the After Effects ZIP file
-   - Select required DLL files (msxml3.dll, msxml3r.dll)
-
-### Installation Options
-
-#### Option 1: Interactive Menu (Recommended)
-```bash
-./run.sh
-```
-
-Menu options:
+Interactive menu options:
 - `1` - Run AeNux Installer
 - `2` - Run AeNux Configurator
 - `3` - Run AeNux (Execute After Effects)
 - `4` - Run Plugin Installer
 - `5` - Install/Reinstall Dependencies
 
-#### Option 2: Command-Line Flags
+Or use command-line flags:
 ```bash
-# Run After Effects
-./run.sh -r
-
-# Run Installer
-./run.sh -i
-
-# Run Configurator
-./run.sh -c
-
-# Run Plugin Installer
-./run.sh -p
-
-# Install dependencies
-./run.sh -d
-
-# Show help
-./run.sh -h
+./run.sh -r   # Run After Effects
+./run.sh -i   # Run Installer
+./run.sh -c   # Run Configurator
+./run.sh -p   # Run Plugin Installer
+./run.sh -h   # Show help
 ```
 
-## First-Time Setup
+---
 
-### Step 1: Install Dependencies
-```bash
-./run.sh -d
-```
-or select option `5` from the menu.
+## 🧩 Plugin Installation
 
-This will:
-- Update system packages
-- Install Python GTK bindings
-- Create Python virtual environment
-- Install Python dependencies
+Plugins are **not included** due to copyright restrictions.
 
-### Step 2: Run Installer
-```bash
-./run.sh -i
-```
-or select option `1` from the menu.
+To install plugins:
 
-You'll need:
-- A location for installation (minimum 50GB free space)
-- After Effects ZIP file
-- DLL files (msxml3.dll, msxml3r.dll)
+1. Open the AeNux GUI: `./run.sh`
+2. Select option `4` - Run Plugin Installer
+3. Place your plugins in the respective folders:
+   - **AEX Plugins**: `PlugIn/aex/`
+   - **CEP Extensions**: `PlugIn/CEP/`
+   - **Script Installers**: `PlugIn/installer/`
+   - **Presets**: `PlugIn/preset-backup/`
+   - **Scripts**: `PlugIn/scripts/`
 
-### Step 3: Configure (Optional)
-```bash
-./run.sh -c
-```
-or select option `2` from the menu.
+4. Use the Plugin Installer GUI to select and install
 
-You can:
-- Verify installation paths
-- Configure Wine settings
-- Install plugins
+**For plugin-related inquiries:**
+* Telegram: **@cutefishaep**
 
-### Step 4: Run After Effects
-```bash
-./run.sh -r
-```
-or select option `3` from the menu.
+---
 
-## Plugin Installation
-
-### Using Plugin Installer
-```bash
-./run.sh -p
-```
-or select option `4` from the menu.
-
-### Supported Plugin Types
-
-1. **AEX Plugins**
-   - Place .aex files in: `PlugIn/aex/`
-   
-2. **CEP Extensions**
-   - Place CEP folders in: `PlugIn/CEP/`
-   - AddKeys.reg file supported
-
-3. **Script Installers**
-   - Place .exe installers in: `PlugIn/installer/`
-
-4. **Presets**
-   - Place preset folders in: `PlugIn/preset-backup/`
-
-5. **Scripts**
-   - Place script files in: `PlugIn/scripts/`
-
-### Example Plugin Structure
-```
-PlugIn/
-├── aex/
-│   ├── plugin1.aex
-│   └── plugin_folder/
-├── CEP/
-│   ├── ExtensionName/
-│   └── AddKeys.reg
-├── installer/
-│   └── installer.exe
-├── preset-backup/
-│   └── preset_name/
-└── scripts/
-    ├── script.jsx
-    └── script_folder/
-```
-
-## Configuration
-
-### Configuration File
-AeNux stores configuration in `script/aenux_config.json`:
-
-```json
-{
-  "version": "2.0",
-  "user_location": "/path/to/installation",
-  "wine_path": "/path/to/wine",
-  "wineprefix": "/path/to/wineprefix",
-  "aenux_path": "/path/to/AeNux"
-}
-```
-
-## File Structure
+## 📁 Project Structure
 
 ```
 AeNux/
@@ -243,7 +211,9 @@ AeNux/
 └── venv/                        # Python virtual environment
 ```
 
-## Troubleshooting
+---
+
+## 🔧 Troubleshooting
 
 ### ModuleNotFoundError: No module named 'gi'
 Run dependency installation:
@@ -270,49 +240,59 @@ And verify the wine path in the Configurator.
    - Verify wineprefix exists
    - Verify aenux_path exists
 
-## Development
-
-### Project Structure
-- `script/` - Main application scripts
-- `PlugIn/` - Plugin installer components
-- `src/` - Resources (icons, UI files)
-- `venv/` - Python virtual environment
-
-### Running in Development
+### Desktop shortcut not working
+Recreate shortcuts using Configurator:
 ```bash
-# Activate virtual environment
-source venv/bin/activate
-
-# Run individual scripts
-python3 script/AeNux_Installer.py
-python3 script/AeNux_Configurator.py
-python3 PlugIn/PlugIn.py
+./run.sh -c
 ```
 
-## Contributing
+---
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+## Uninstallation
 
-### Areas for Contribution
-- Bug fixes and improvements
-- Plugin compatibility testing
-- Documentation updates
-- Feature requests and suggestions
+1. Open AeNux:
+   ```bash
+   ./run.sh
+   ```
+2. Select option `2` - Run AeNux Configurator
+3. Click **Uninstall AeNux**
+4. Delete the project directory
 
-## Credits
-- **Wine Project**: https://www.winehq.org/
-- **GTK Project**: https://www.gtk.org/
-- **After Effects**: Adobe 
+---
 
-## Support
+## 🙏 Acknowledgments
 
-For issues, questions, or suggestions:
-1. Check the [Troubleshooting](#troubleshooting) section
-2. Open an issue on GitHub
-3. Check existing issues for solutions
+Special thanks to **MattKC** for his pioneering work.
+Forum reference: [https://forum.mattkc.com/viewtopic.php?t=337](https://forum.mattkc.com/viewtopic.php?t=337)
 
+Huge thanks also to **@relativemodder** for creating the AeGnux fork, making installation much simpler for the community. ❤️🐧
+
+Additional thanks to the **Wine Project** and **GTK Project** for their amazing work.
+
+---
+
+## 💬 Developer Disclaimer
+
+This is my first GitHub project.
+While AI assistance was used during development, the code has been cleaned and refined manually.
+Please submit issues if you encounter any problems, I will continue improving AeNux.
+
+---
+
+<div align="center">
+  <strong>Happy Editing on Linux! 🎬🐧</strong>
+</div>
+
+---
+
+## 🔗 Support & Contact
+
+* Telegram: **@cutefishaep**
+* GitHub Issues: Bug reports & feature requests
+* GitHub Discussions: Questions & suggestions
+
+---
 
 **Last Updated**: December 2025
-
 
 Made with ❤️ for the creative community on Linux
