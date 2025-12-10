@@ -1,7 +1,7 @@
 # AeNux
 
 <p align="center">
-  <img src="https://github.com/cutefishaep/AeNux/blob/main/asset/logo.png" alt="AeNux Logo" width="200"/><br>
+  <img src="github.com/cutefishaep/AeNux/blob/main/src/aenux.png" alt="AeNux Logo" width="200"/><br>
   <strong style="font-size: 100px">AeNux</strong>
 </p>
 
