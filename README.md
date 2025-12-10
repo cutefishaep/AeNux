@@ -22,10 +22,6 @@
 **AeNux** is a comprehensive installer and configuration tool that enables **Adobe After Effects** to run on **Linux** through **Wine** and **Winetricks**.
 Created for creative professionals working on Linux, it provides an automated solution for installation, configuration, and plugin management.
 
-> ⚠️ **Notice:**
-> AeNux is for educational and experimental purposes only.
-> Please follow all software licensing rules and use responsibly.
-
 ## Features
 
 ### 🚀 AeNux Installer
