@@ -89,6 +89,9 @@ install_dependencies() {
         exit 1
     fi
     
+    # Setup venv
+    setup_venv
+
     # Install system dependencies FIRST (includes python3-gi)
     print_info "Installing system dependencies..."
     if command -v apt-get &> /dev/null; then
@@ -115,6 +118,9 @@ install_dependencies() {
 
 # Check if dependencies are installed
 check_dependencies() {
+    if [ ! -f "$VENV_DIR/bin/activate" ]; then
+        return 1
+    fi
     source "$VENV_DIR/bin/activate"
     python3 -c "import requests; import gi" 2>/dev/null
     local result=$?
@@ -259,11 +265,11 @@ main() {
     # Check Python
     check_python
     
+    # Handle command-line arguments that exit immediately
+    handle_args "$@"
+
     # Setup venv
     setup_venv
-    
-    # Handle command-line arguments
-    handle_args "$@"
     
     # Check dependencies in interactive mode
     if ! check_dependencies; then

@@ -4,13 +4,9 @@
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GLib
-import os, json, subprocess, tarfile, zipfile, shutil, requests, threading, stat, glob
+import os, tarfile, zipfile, shutil, requests, threading, stat
 from urllib.request import urlretrieve
-
-DEBUG = True
-
-def debug_print(msg):
-    if DEBUG: print(f"[DEBUG] {msg}")
+import utils
 
 class AeNuxInstaller:
     def __init__(self):
@@ -20,7 +16,7 @@ class AeNuxInstaller:
         try:
             self.builder.add_from_file(ui_file)
         except Exception as e:
-            debug_print(f"UI Error: {e}")
+            utils.debug_print(f"UI Error: {e}")
             raise
         
         self.window = self.builder.get_object('main_window')
@@ -43,7 +39,7 @@ class AeNuxInstaller:
         self.dll_files = {}
         self.config_path = os.path.join(os.path.dirname(__file__), 'aenux_config.json')
         
-        debug_print(f"Installer ready. Config: {self.config_path}")
+        utils.debug_print(f"Installer ready. Config: {self.config_path}")
     
     def check_ready(self, widget):
         """Enable install button when both selections made"""
@@ -54,13 +50,13 @@ class AeNuxInstaller:
     def on_window_close(self, widget, event):
         """Handle window close event - cleanup TEMP if installing"""
         if self.is_installing:
-            debug_print("Window closed during installation - cleaning up TEMP folder")
+            utils.debug_print("Window closed during installation - cleaning up TEMP folder")
             if self.temp_dir and os.path.exists(self.temp_dir):
                 try:
                     shutil.rmtree(self.temp_dir)
-                    debug_print(f"TEMP folder cleaned: {self.temp_dir}")
+                    utils.debug_print(f"TEMP folder cleaned: {self.temp_dir}")
                 except Exception as e:
-                    debug_print(f"Error cleaning TEMP: {e}")
+                    utils.debug_print(f"Error cleaning TEMP: {e}")
         return False
     
     def on_install(self, widget):
@@ -90,16 +86,16 @@ class AeNuxInstaller:
             file_path = self._show_file_dialog(dll_name)
             
             if not file_path:
-                self._show_error(f"{dll_name} tidak dipilih")
+                utils.show_error(self.window, f"{dll_name} tidak dipilih")
                 return False
             
             filename = os.path.basename(file_path)
             if filename != dll_name:
-                self._show_error(f"File name mismatch!\nExpected: {dll_name}\nGot: {filename}")
+                utils.show_error(self.window, f"File name mismatch!\nExpected: {dll_name}\nGot: {filename}")
                 return False
             
             self.dll_files[dll_name] = file_path
-            debug_print(f"Selected: {dll_name}")
+            utils.debug_print(f"Selected: {dll_name}")
         
         return True
     
@@ -121,19 +117,6 @@ class AeNuxInstaller:
         
         return file_path
     
-    def _show_error(self, msg):
-        """Show error popup"""
-        dialog = Gtk.MessageDialog(
-            transient_for=self.window,
-            flags=0,
-            message_type=Gtk.MessageType.ERROR,
-            buttons=Gtk.ButtonsType.OK,
-            text="Error"
-        )
-        dialog.format_secondary_text(msg)
-        dialog.run()
-        dialog.destroy()
-    
     def update_progress(self, fraction, text=""):
         """Update progress bar"""
         GLib.idle_add(lambda f=fraction, t=text: self._update_ui(f, t))
@@ -149,7 +132,7 @@ class AeNuxInstaller:
         try:
             self.temp_dir = os.path.join(self.user_location, 'TEMP')
             os.makedirs(self.temp_dir, exist_ok=True)
-            debug_print(f"Created TEMP directory: {self.temp_dir}")
+            utils.debug_print(f"Created TEMP directory: {self.temp_dir}")
             
             steps = [
                 (0.10, "Downloading...", lambda: self.download_files(self.temp_dir)),
@@ -163,21 +146,21 @@ class AeNuxInstaller:
             
             for progress, msg, func in steps:
                 self.update_progress(progress, msg)
-                debug_print(msg)
+                utils.debug_print(msg)
                 func()
             
             self.update_progress(1.0, "Complete!")
-            debug_print("Installation finished")
+            utils.debug_print("Installation finished")
             GLib.idle_add(self._show_success)
             
         except Exception as e:
-            debug_print(f"Error: {e}")
+            utils.debug_print(f"Error: {e}")
             if self.temp_dir and os.path.exists(self.temp_dir):
                 try:
                     shutil.rmtree(self.temp_dir)
-                    debug_print(f"TEMP folder cleaned on error: {self.temp_dir}")
+                    utils.debug_print(f"TEMP folder cleaned on error: {self.temp_dir}")
                 except Exception as cleanup_error:
-                    debug_print(f"Error cleaning TEMP on error: {cleanup_error}")
+                    utils.debug_print(f"Error cleaning TEMP on error: {cleanup_error}")
             GLib.idle_add(lambda err=str(e): self._show_error_final(err))
         finally:
             self.is_installing = False
@@ -192,16 +175,16 @@ class AeNuxInstaller:
             'winetricks': 'https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks'
         }
         
-        debug_print(f"Downloading {len(urls)} files...")
+        utils.debug_print(f"Downloading {len(urls)} files...")
         
         for idx, (filename, url) in enumerate(urls.items(), 1):
             filepath = os.path.join(temp_dir, filename)
             
             if os.path.exists(filepath):
-                debug_print(f"[{idx}/{len(urls)}] {filename} (cached)")
+                utils.debug_print(f"[{idx}/{len(urls)}] {filename} (cached)")
                 continue
             
-            debug_print(f"[{idx}/{len(urls)}] Downloading {filename}...")
+            utils.debug_print(f"[{idx}/{len(urls)}] Downloading {filename}...")
             
             try:
                 if filename == 'winetricks':
@@ -214,7 +197,7 @@ class AeNuxInstaller:
                     urlretrieve(url, filepath)
                     
             except Exception as e:
-                debug_print(f"ERROR: Failed to download {filename}: {e}")
+                utils.debug_print(f"ERROR: Failed to download {filename}: {e}")
                 if os.path.exists(filepath):
                     try:
                         os.remove(filepath)
@@ -222,7 +205,7 @@ class AeNuxInstaller:
                         pass
                 raise
         
-        debug_print(f"Downloads completed")
+        utils.debug_print(f"Downloads completed")
     
     def extract_aenux(self):
         """Extract AeNux"""
@@ -230,7 +213,7 @@ class AeNuxInstaller:
         os.makedirs(aenux_dir, exist_ok=True)
         with zipfile.ZipFile(self.zip_file, 'r') as z:
             z.extractall(aenux_dir)
-        debug_print(f"AeNux extracted")
+        utils.debug_print(f"AeNux extracted")
     
     def extract_wine(self, temp_dir):
         """Extract Wine"""
@@ -242,7 +225,7 @@ class AeNuxInstaller:
         
         os.makedirs(wine_dir, exist_ok=True)
         
-        debug_print(f"Extracting Wine from {wine_file}...")
+        utils.debug_print(f"Extracting Wine from {wine_file}...")
         try:
             with tarfile.open(wine_file, 'r:xz') as tar:
                 for member in tar.getmembers():
@@ -250,7 +233,7 @@ class AeNuxInstaller:
                         member.name = member.name.split('/', 1)[1]
                     if member.name:
                         tar.extract(member, wine_dir)
-            debug_print("Wine extracted successfully")
+            utils.debug_print("Wine extracted successfully")
         except Exception as e:
             raise Exception(f"Failed to extract Wine: {str(e)}")
     
@@ -267,7 +250,7 @@ class AeNuxInstaller:
         
         shutil.copy2(src, dst)
         os.chmod(dst, os.stat(dst).st_mode | stat.S_IEXEC)
-        debug_print(f"Winetricks copied and made executable")
+        utils.debug_print(f"Winetricks copied and made executable")
     
     def setup_wine(self):
         """Setup Wine prefix"""
@@ -278,33 +261,28 @@ class AeNuxInstaller:
         if not os.path.exists(wine_bin):
             raise Exception(f"Wine binary not found: {wine_bin}")
         
-        env = os.environ.copy()
-        env['WINEPREFIX'] = prefix
+        wine_path = os.path.join(self.user_location, 'wine')
+        env = utils.get_wine_env(wine_path, prefix)
         
-        debug_print("Initializing Wine prefix...")
-        result = subprocess.run([wine_bin, 'wineboot', '--init'], env=env,
-                               capture_output=True, text=True, timeout=300)
-        if result.returncode != 0:
-            debug_print(f"Wineboot warning - return code: {result.returncode}")
-            debug_print(f"stderr: {result.stderr}")
-        
-        debug_print("Wine prefix created")
+        utils.debug_print("Initializing Wine prefix...")
+        utils.run_command([wine_bin, 'wineboot', '--init'], env=env)
+        utils.debug_print("Wine prefix created")
     
     def install_deps(self, temp_dir):
         """Install dependencies"""
         prefix = os.path.join(self.user_location, 'Wineprefix')
-        wine = os.path.join(self.user_location, 'wine', 'bin', 'wine')
+        wine_path = os.path.join(self.user_location, 'wine')
+        wine_bin = os.path.join(wine_path, 'bin', 'wine')
         tricks = os.path.join(self.user_location, 'wine', 'bin', 'winetricks')
         
-        env = os.environ.copy()
-        env['WINEPREFIX'] = prefix
+        env = utils.get_wine_env(wine_path, prefix)
         
         # Verify winetricks exists and is executable
         if not os.path.exists(tricks):
             raise Exception(f"Winetricks not found at: {tricks}")
         
         if not os.access(tricks, os.X_OK):
-            debug_print(f"Making winetricks executable...")
+            utils.debug_print(f"Making winetricks executable...")
             os.chmod(tricks, os.stat(tricks).st_mode | stat.S_IEXEC)
         
         # Wine Gecko
@@ -312,12 +290,8 @@ class AeNuxInstaller:
         if not os.path.exists(gecko):
             raise Exception(f"Wine Gecko not found at: {gecko}")
         
-        debug_print("Installing wine-gecko...")
-        result = subprocess.run([wine, 'msiexec', '/i', gecko], env=env, 
-                               capture_output=True, text=True)
-        if result.returncode != 0:
-            debug_print(f"Wine Gecko install stderr: {result.stderr}")
-            debug_print(f"Wine Gecko install stdout: {result.stdout}")
+        utils.debug_print("Installing wine-gecko...")
+        utils.run_command([wine_bin, 'msiexec', '/i', gecko], env=env)
         
         # VC Redist
         for arch in ['x64', 'x86']:
@@ -325,178 +299,76 @@ class AeNuxInstaller:
             if not os.path.exists(vc):
                 raise Exception(f"VC Redist {arch} not found at: {vc}")
             
-            debug_print(f"Installing VC Redist {arch}...")
-            result = subprocess.run([wine, vc, '/install', '/quiet', '/norestart'], env=env,
-                                   capture_output=True, text=True)
-            if result.returncode != 0:
-                debug_print(f"VC Redist {arch} install stderr: {result.stderr}")
-                debug_print(f"VC Redist {arch} install stdout: {result.stdout}")
+            utils.debug_print(f"Installing VC Redist {arch}...")
+            utils.run_command([wine_bin, vc, '/install', '/quiet', '/norestart'], env=env)
         
-        # Winetricks - with better error handling
-        debug_print("Installing dxvk...")
-        result = subprocess.run([tricks, 'dxvk'], env=env, 
-                               capture_output=True, text=True, timeout=300)
-        if result.returncode != 0:
-            debug_print(f"DXVK install warning - return code: {result.returncode}")
-            debug_print(f"stderr: {result.stderr}")
-            # Don't fail on dxvk, continue
+        # Winetricks
+        winetricks_verbs = ['dxvk', 'corefonts', 'gdiplus', 'fontsmooth=rgb']
+        for verb in winetricks_verbs:
+            utils.debug_print(f"Running winetricks: {verb}")
+            utils.run_command([tricks, verb], env=env)
         
-        debug_print("Installing corefonts...")
-        result = subprocess.run([tricks, 'corefonts'], env=env,
-                               capture_output=True, text=True, timeout=300)
-        if result.returncode != 0:
-            debug_print(f"Corefonts install warning - return code: {result.returncode}")
-            debug_print(f"stderr: {result.stderr}")
-            # Don't fail on corefonts, continue
-        
-        debug_print("Installing gdiplus...")
-        result = subprocess.run([tricks, 'gdiplus'], env=env,
-                               capture_output=True, text=True, timeout=300)
-        if result.returncode != 0:
-            debug_print(f"GDIPlus install warning - return code: {result.returncode}")
-            debug_print(f"stderr: {result.stderr}")
-            # Don't fail on gdiplus, continue
-        
-        debug_print("Installing fontsmooth...")
-        result = subprocess.run([tricks, 'fontsmooth=rgb'], env=env,
-                               capture_output=True, text=True, timeout=300)
-        if result.returncode != 0:
-            debug_print(f"Fontsmooth install warning - return code: {result.returncode}")
-            debug_print(f"stderr: {result.stderr}")
-            # Don't fail on fontsmooth, continue
-        
-        debug_print("Dependency installation completed (warnings ignored)")
+        utils.debug_print("Dependency installation completed.")
     
     def finalize(self, temp_dir):
         """Finalize installation"""
         prefix = os.path.join(self.user_location, 'Wineprefix')
-        wine = os.path.join(self.user_location, 'wine', 'bin', 'wine')
+        wine_path = os.path.join(self.user_location, 'wine')
+        wine_bin = os.path.join(wine_path, 'bin', 'wine')
         system32 = os.path.join(prefix, 'drive_c', 'windows', 'system32')
         
         # Copy DLLs
         for dll_name, dll_path in self.dll_files.items():
             dst = os.path.join(system32, dll_name)
             shutil.copy2(dll_path, dst)
-            debug_print(f"Copied {dll_name}")
+            utils.debug_print(f"Copied {dll_name}")
         
         # Registry
-        env = os.environ.copy()
-        env['WINEPREFIX'] = prefix
-        subprocess.run([wine, 'reg', 'add', 'HKCU\\Software\\Wine\\DllOverrides',
-                       '/v', 'msxml3', '/d', 'native,builtin', '/f'], env=env, check=True)
-        debug_print("Registry set")
+        env = utils.get_wine_env(wine_path, prefix)
+        utils.run_command([wine_bin, 'reg', 'add', 'HKCU\\Software\\Wine\\DllOverrides',
+                           '/v', 'msxml3', '/d', 'native,builtin', '/f'], env=env)
+        utils.debug_print("Registry set")
         
         # Set theme/colors registry
-        self.set_theme_registry(wine, prefix)
+        utils.set_theme_registry(wine_path, prefix)
         
         # Save config
         config = {
             'version': '2.0',
             'user_location': self.user_location,
-            'wine_path': os.path.join(self.user_location, 'wine'),
+            'wine_path': wine_path,
             'wineprefix': prefix,
             'aenux_path': os.path.join(self.user_location, 'AeNux')
         }
-        with open(self.config_path, 'w') as f:
-            json.dump(config, f, indent=4)
-        debug_print(f"Config saved")
+        utils.save_config(config)
         
         # Create shortcuts
-        env = os.environ.copy()
-        env['WINEPREFIX'] = prefix
-        wine_path = os.path.join(self.user_location, 'wine')
-        wineserver = os.path.join(wine_path, 'bin', 'wineserver')
-        self._create_shortcuts(env, wine_path, wineserver, prefix)
+        utils.create_shortcuts(wine_path, prefix, config['aenux_path'])
         
         # Run AppShortcutMake.sh to create desktop shortcuts
         script_dir = os.path.dirname(__file__)
         shortcut_script = os.path.join(script_dir, 'AppShortcutMake.sh')
         if os.path.exists(shortcut_script):
             try:
-                debug_print("Running AppShortcutMake.sh...")
-                subprocess.run(['bash', shortcut_script], check=False,
-                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                debug_print("Desktop shortcuts created successfully")
+                utils.debug_print("Running AppShortcutMake.sh...")
+                utils.run_command(['bash', shortcut_script])
+                utils.debug_print("Desktop shortcuts created successfully")
             except Exception as e:
-                debug_print(f"Warning: Failed to create desktop shortcuts: {e}")
+                utils.debug_print(f"Warning: Failed to create desktop shortcuts: {e}")
         
         # Cleanup
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
-        debug_print("Cleaned up TEMP")
+        utils.debug_print("Cleaned up TEMP")
     
-    def set_theme_registry(self, wine_bin, prefix):
-        """Set Wine theme/colors registry"""
-        # Theme colors mapping
-        colors = {
-            "ActiveBorder": "49 54 58",
-            "ActiveTitle": "49 54 58",
-            "AppWorkSpace": "60 64 72",
-            "Background": "49 54 58",
-            "ButtonAlternativeFace": "60 64 72",
-            "ButtonDkShadow": "30 33 36",
-            "ButtonFace": "49 54 58",
-            "ButtonHilight": "119 126 140",
-            "ButtonLight": "60 64 72",
-            "ButtonShadow": "40 43 47",
-            "ButtonText": "219 220 222",
-            "GradientActiveTitle": "49 54 58",
-            "GradientInactiveTitle": "49 54 58",
-            "GrayText": "100 104 110",
-            "Hilight": "119 126 140",
-            "HilightText": "255 255 255",
-            "InactiveBorder": "49 54 58",
-            "InactiveTitle": "49 54 58",
-            "InactiveTitleText": "219 220 222",
-            "InfoText": "180 185 190",
-            "InfoWindow": "49 54 58",
-            "Menu": "40 43 47",
-            "MenuBar": "40 43 47",
-            "MenuHilight": "119 126 140",
-            "MenuText": "219 220 222",
-            "Scrollbar": "60 64 72",
-            "TitleText": "219 220 222",
-            "Window": "35 38 41",
-            "WindowFrame": "49 54 58",
-            "WindowText": "219 220 222",
-        }
-        
-        env = os.environ.copy()
-        env['WINEPREFIX'] = prefix
-        
-        # Set each color
-        for key, value in colors.items():
-            try:
-                subprocess.run(
-                    [wine_bin, 'reg', 'add',
-                     'HKCU\\Control Panel\\Colors',
-                     '/v', key,
-                     '/d', value,
-                     '/f'],
-                    env=env,
-                    check=True,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL
-                )
-            except subprocess.CalledProcessError as e:
-                debug_print(f"Warning: Failed to set {key}: {e}")
     def _show_success(self):
         """Show success dialog"""
-        dialog = Gtk.MessageDialog(
-            transient_for=self.window,
-            flags=0,
-            message_type=Gtk.MessageType.INFO,
-            buttons=Gtk.ButtonsType.OK,
-            text="Installation Complete!"
-        )
-        dialog.format_secondary_text("AeNux installed successfully!")
-        dialog.run()
-        dialog.destroy()
+        utils.show_info(self.window, "AeNux installed successfully!")
         # Attempt to stop any running Wine processes for the created prefix
         try:
             wine_path = os.path.join(self.user_location, 'wine')
             wine_prefix = os.path.join(self.user_location, 'Wineprefix')
-            self._kill_wine_processes(wine_path, wine_prefix)
+            utils.kill_wine_processes(wine_path, wine_prefix)
         except Exception:
             pass
 
@@ -505,102 +377,16 @@ class AeNuxInstaller:
         self.install_btn.set_sensitive(False)
         Gtk.main_quit()
 
-    def _create_shortcuts(self, env, wine_path, wineserver_path, wineprefix):
-        """Create shortcuts to Linux folders in wineprefix"""
-        try:
-            debug_print("[DEBUG] Creating shortcuts...")
-            
-            wine_drive_c = os.path.join(wineprefix, "drive_c")
-            fav_dir = os.path.join(wine_drive_c, "users", "*", "Favorites")
-            
-            fav_paths = glob.glob(fav_dir)
-            if not fav_paths:
-                debug_print("[DEBUG] No Favorites directory found, skipping shortcuts")
-                return True
-            
-            target_fav_dir = fav_paths[0]
-            home_dir = os.path.expanduser("~")
-            
-            # Remove existing symlinks and create new ones
-            folders = ["Documents", "Downloads", "Pictures", "Videos", "Music"]
-            for folder in folders:
-                link_path = os.path.join(target_fav_dir, folder)
-                
-                # Remove existing link if it exists
-                if os.path.exists(link_path):
-                    if os.path.islink(link_path):
-                        os.remove(link_path)
-                    elif os.path.isdir(link_path):
-                        shutil.rmtree(link_path)
-                    else:
-                        os.remove(link_path)
-                
-                # Create new symlink
-                linux_path = os.path.join(home_dir, folder)
-                if os.path.exists(linux_path):
-                    os.symlink(linux_path, link_path)
-                    debug_print(f"[DEBUG] Created shortcut: {folder}")
-            
-            # Create AeNux shortcut from config
-            aenux_path = self.config.get('aenux_path', os.path.join(self.user_location, 'AeNux'))
-            if os.path.exists(aenux_path):
-                ae_nux_link = os.path.join(target_fav_dir, "AeNux")
-                if os.path.exists(ae_nux_link):
-                    if os.path.islink(ae_nux_link):
-                        os.remove(ae_nux_link)
-                    elif os.path.isdir(ae_nux_link):
-                        shutil.rmtree(ae_nux_link)
-                    else:
-                        os.remove(ae_nux_link)
-                os.symlink(aenux_path, ae_nux_link)
-                debug_print(f"[DEBUG] Created AeNux shortcut")
-            
-            subprocess.run([wineserver_path, "-k"], env=env, capture_output=True)
-            debug_print("[DEBUG] Shortcuts created successfully")
-            return True
-            
-        except Exception as e:
-            debug_print(f"[WARNING] Shortcut creation failed: {str(e)}")
-            return True  # Not critical, continue anyway
-    
-    def _kill_wine_processes(self, wine_path, wineprefix):
-        """Kill wineserver processes for a given wine installation."""
-        wineserver = os.path.join(wine_path, 'bin', 'wineserver')
-        if not os.path.exists(wineserver):
-            debug_print(f"Wineserver not found at {wineserver}")
-            return
-
-        env = os.environ.copy()
-        env['WINEPREFIX'] = wineprefix
-
-        try:
-            subprocess.run([wineserver, '-k'], env=env, check=False,
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            subprocess.run([wineserver, '-w'], env=env, check=False,
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            debug_print("Wineserver killed")
-        except Exception as e:
-            debug_print(f"Failed to kill wineserver: {e}")
-    
     def _show_error_final(self, msg):
         """Show error and exit"""
-        dialog = Gtk.MessageDialog(
-            transient_for=self.window,
-            flags=0,
-            message_type=Gtk.MessageType.ERROR,
-            buttons=Gtk.ButtonsType.OK,
-            text="Installation Error!"
-        )
-        dialog.format_secondary_text(msg)
-        dialog.run()
-        dialog.destroy()
+        utils.show_error(self.window, msg)
         self.install_btn.set_label("Install")
         self.install_btn.set_sensitive(False)
         Gtk.main_quit()
     
     def run(self):
         """Start app"""
-        debug_print("Starting installer")
+        utils.debug_print("Starting installer")
         self.window.show_all()
         Gtk.main()
 
