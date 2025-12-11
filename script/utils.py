@@ -15,7 +15,7 @@ def debug_print(msg):
     if DEBUG:
         print(f"[DEBUG] {msg}")
 
-def run_command(command, env=None, cwd=None, check=False):
+def run_command(command, env=None, cwd=None, check=False, timeout=None):
     """Runs a command and logs its output."""
     debug_print(f"Running command: {' '.join(command)}")
     try:
@@ -25,7 +25,8 @@ def run_command(command, env=None, cwd=None, check=False):
             cwd=cwd,
             capture_output=True,
             text=True,
-            check=check
+            check=check,
+            timeout=timeout
         )
         if result.stdout:
             debug_print(f"STDOUT: {result.stdout.strip()}")
@@ -34,6 +35,9 @@ def run_command(command, env=None, cwd=None, check=False):
         return result
     except FileNotFoundError:
         debug_print(f"Error: Command not found: {command[0]}")
+        return None
+    except subprocess.TimeoutExpired:
+        debug_print(f"Command timed out: {' '.join(command)}")
         return None
     except Exception as e:
         debug_print(f"An unexpected error occurred: {e}")
@@ -62,7 +66,7 @@ def kill_wine_processes(wine_path, wineprefix):
 
     env = get_wine_env(wine_path, wineprefix)
     run_command([wineserver, '-k'], env=env)
-    run_command([wineserver, '-w'], env=env)
+    run_command([wineserver, '-w'], env=env, timeout=10)
     debug_print("Wine processes stopped.")
 
 def set_theme_registry(wine_path, wineprefix):
