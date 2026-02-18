@@ -1,0 +1,14 @@
+# AeNux Requirements
+# Python 3.6+
+
+# System Packages (not pip)
+# PyGObject >= 3.36 (provides gi module)
+# cabextract - for extracting CAB/MSI files
+# Note: Install via: sudo apt-get install python3-gi python3-gi-cairo gir1.2-gtk-3.0 cabextract
+
+# HTTP Client
+requests >= 2.25.0
+
+# Standard Library (pre-installed)
+# os, json, subprocess, tarfile, zipfile, shutil, threading, stat, glob, sys
+# urllib.request, pathlib

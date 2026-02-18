@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env/
+bin/
+lib/
+lib64/
+share/
+Include/
+
+# Build and installers
+asset/
+*.exe
+*.msi
+*.so
+*.dylib
+*.dll
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
