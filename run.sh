@@ -53,13 +53,35 @@ check_python() {
 
 # Create or verify venv
 setup_venv() {
-    if [[ ! -d "$VENV_DIR" ]]; then
+    if [[ ! -f "$VENV_DIR/bin/activate" ]]; then
+        if [[ -d "$VENV_DIR" ]]; then
+            print_warning "Virtual Environment directory exists but is incomplete. Removing..."
+            rm -rf "$VENV_DIR"
+        fi
+        
         print_header "Creating Virtual Environment"
         # Create venv with --system-site-packages to access system packages like gi
-        python3 -m venv --system-site-packages "$VENV_DIR"
+        if ! python3 -m venv --system-site-packages "$VENV_DIR"; then
+            print_warning "Virtual environment creation failed."
+            if command -v apt-get &> /dev/null; then
+                print_info "Detected Debian/Ubuntu system. Attempting to install missing python3-venv..."
+                sudo apt-get update
+                # Try to install the generic and specific version
+                VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+                sudo apt-get install -y python3-venv "python$VERSION-venv"
+                
+                print_info "Retrying virtual environment creation..."
+                # Clean up again before retry if failed creation left something
+                rm -rf "$VENV_DIR"
+                python3 -m venv --system-site-packages "$VENV_DIR"
+            else
+                print_error "Failed to create venv. Please install python3-venv manually."
+                exit 1
+            fi
+        fi
         print_success "Virtual Environment created at: $VENV_DIR"
     else
-        print_success "Virtual Environment already exists"
+        print_success "Virtual Environment ready"
     fi
 }
 

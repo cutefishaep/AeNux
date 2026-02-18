@@ -25,10 +25,16 @@ class AeNuxInstaller:
         self.zip_chooser = self.builder.get_object('zip_files1')
         self.progress = self.builder.get_object('install_progressbar')
         
+        # DLL Choosers
+        self.dll_msxml3_chooser = self.builder.get_object('dll_msxml3_chooser')
+        self.dll_msxml3r_chooser = self.builder.get_object('dll_msxml3r_chooser')
+        
         self.install_btn.set_sensitive(False)
         self.install_btn.connect('clicked', self.on_install)
         self.location.connect('selection-changed', self.check_ready)
         self.zip_chooser.connect('selection-changed', self.check_ready)
+        self.dll_msxml3_chooser.connect('selection-changed', self.check_ready)
+        self.dll_msxml3r_chooser.connect('selection-changed', self.check_ready)
         self.window.connect('delete-event', self.on_window_close)
         
         self.is_installing = False
@@ -42,10 +48,13 @@ class AeNuxInstaller:
         utils.debug_print(f"Installer ready. Config: {self.config_path}")
     
     def check_ready(self, widget):
-        """Enable install button when both selections made"""
+        """Enable install button when all selections made"""
         has_location = self.location.get_filename()
         has_zip = self.zip_chooser.get_filename()
-        self.install_btn.set_sensitive(bool(has_location and has_zip))
+        has_msxml3 = self.dll_msxml3_chooser.get_filename()
+        has_msxml3r = self.dll_msxml3r_chooser.get_filename()
+        
+        self.install_btn.set_sensitive(bool(has_location and has_zip and has_msxml3 and has_msxml3r))
     
     def on_window_close(self, widget, event):
         """Handle window close event - cleanup TEMP if installing"""
@@ -57,6 +66,8 @@ class AeNuxInstaller:
                     utils.debug_print(f"TEMP folder cleaned: {self.temp_dir}")
                 except Exception as e:
                     utils.debug_print(f"Error cleaning TEMP: {e}")
+        
+        Gtk.main_quit()
         return False
     
     def on_install(self, widget):
@@ -67,9 +78,21 @@ class AeNuxInstaller:
         if not self.user_location or not self.zip_file:
             return
         
-        # Select DLL files FIRST before installation
-        if not self.select_dlls():
-            return
+        # Get DLL files
+        self.dll_files = {
+            'msxml3.dll': self.dll_msxml3_chooser.get_filename(),
+            'msxml3r.dll': self.dll_msxml3r_chooser.get_filename()
+        }
+        
+        # Validate DLL files
+        for dll_name, dll_path in self.dll_files.items():
+            if not dll_path or not os.path.exists(dll_path):
+                utils.show_error(self.window, f"File {dll_name} tidak ditemukan di path yang diberikan!")
+                return
+            
+            if os.path.basename(dll_path) != dll_name:
+                utils.show_error(self.window, f"Nama file tidak cocok!\nSeharusnya: {dll_name}\nDitemukan: {os.path.basename(dll_path)}")
+                return
         
         self.install_btn.set_label("Installing...")
         self.install_btn.set_sensitive(False)
@@ -78,26 +101,7 @@ class AeNuxInstaller:
         thread = threading.Thread(target=self.install_process, daemon=True)
         thread.start()
     
-    def select_dlls(self):
-        """Select DLL files before installation starts"""
-        self.dll_files = {}
-        
-        for dll_name in ['msxml3.dll', 'msxml3r.dll']:
-            file_path = self._show_file_dialog(dll_name)
-            
-            if not file_path:
-                utils.show_error(self.window, f"{dll_name} tidak dipilih")
-                return False
-            
-            filename = os.path.basename(file_path)
-            if filename != dll_name:
-                utils.show_error(self.window, f"File name mismatch!\nExpected: {dll_name}\nGot: {filename}")
-                return False
-            
-            self.dll_files[dll_name] = file_path
-            utils.debug_print(f"Selected: {dll_name}")
-        
-        return True
+    
     
     def _show_file_dialog(self, title):
         """Show GTK3 file chooser"""

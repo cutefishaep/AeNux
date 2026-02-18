@@ -18,14 +18,16 @@ class AeNuxConfigurator:
             utils.debug_print(f"Error loading UI: {e}")
             raise
         
+        self.window = self.builder.get_object('Config')
+        if not self.window:
+            utils.debug_print("Error: Could not find 'Config' window in UI file")
+            return
+
         # Load configuration
         self.config = utils.load_config()
         if not self.config:
-            utils.show_error(None, "Configuration file not found")
-            Gtk.main_quit()
+            utils.show_error(None, "Configuration file not found. Please run AeNux Installer first.")
             return
-        
-        self.window = self.builder.get_object('Config')
         self.select_runner = self.builder.get_object('select_runner')
         self.select_wineprefix = self.builder.get_object('select_wineprefix_folder')
         
@@ -41,7 +43,7 @@ class AeNuxConfigurator:
         # Setup Uninstall tab
         self.setup_uninstall_tab()
         
-        self.window.connect('delete-event', Gtk.main_quit)
+        self.window.connect('delete-event', self.on_window_close)
         self.wineprefix_disabled = True  # Initially disabled
         
         utils.debug_print(f"Configurator initialized. Config: {self.config}")
@@ -396,8 +398,16 @@ class AeNuxConfigurator:
             utils.debug_print(f"Error opening folder: {e}")
             utils.show_error(self.window, f"Could not open folder: {path}")
     
+    def on_window_close(self, widget, event):
+        """Handle window close event"""
+        Gtk.main_quit()
+        return False
+
     def run(self):
         """Start the application"""
+        if not hasattr(self, 'window') or not self.window:
+            return
+            
         utils.debug_print("Starting AeNux Configurator")
         self.window.show_all()
         Gtk.main()
