@@ -1,0 +1,87 @@
+/*
+ * style.css
+ * Layout and spacing parameters for AeNux.
+ * Inherits colors from active system stylesheets to ensure full theme integration.
+ */
+
+/* Titles spacing */
+.h2 {
+    font-size: 14pt;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+/* Sidebar item padding */
+.sidebar row {
+    padding: 6px 12px;
+    border-radius: 6px;
+    margin: 2px 4px;
+}
+
+/* Card lists - custom spacing and borders using system-adaptive border colors */
+.card-list {
+    border: 1px solid alpha(@theme_fg_color, 0.12);
+    border-radius: 6px;
+}
+
+.card-list row {
+    padding: 8px 12px;
+    border-bottom: 1px solid alpha(@theme_fg_color, 0.08);
+}
+
+.card-list row:last-child {
+    border-bottom: none;
+}
+
+/* Standard UI control sizing */
+entry {
+    padding: 4px 8px;
+}
+
+button {
+    padding: 4px 10px;
+}
+
+/* Mono logs terminal */
+.console-log {
+    font-family: monospace;
+    font-size: 9pt;
+    border: 1px solid alpha(@theme_fg_color, 0.12);
+    border-radius: 6px;
+    padding: 8px;
+}
+
+/* Progress Bar styling */
+.aenux-progress trough {
+    min-height: 8px;
+    background: alpha(@theme_fg_color, 0.1);
+    border: none;
+    border-radius: 0;
+}
+
+.aenux-progress progress {
+    min-height: 8px;
+    background: #0078d7; /* Sleek Adobe-like blue */
+    border: none;
+    border-radius: 0;
+}
+
+/* Custom styles for Installer layout */
+.title-label {
+    font-size: 12pt;
+    font-weight: bold;
+}
+
+.logo-text {
+    font-size: 15pt;
+    font-weight: bold;
+    margin-top: 4px;
+}
+
+.step-title {
+    font-size: 9.5pt;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+
