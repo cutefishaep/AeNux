@@ -1,256 +1,47 @@
 # AeNux
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/cutefishaep/AeNux/main/src/aenux.png" 
-       alt="AeNux Logo" 
-       width="200">
-  <br>
-  <strong style="font-size: 100px;">AeNux</strong>
-</p>
-
-<div align="center">
-
-[![Linux Compatible](https://img.shields.io/badge/Linux-Compatible-brightgreen?style=for-the-badge&logo=linux)](https://www.linux.org)
-[![Wine](https://img.shields.io/badge/Wine-Compatible-7e0202?style=for-the-badge&logo=wine)](https://www.winehq.org)
-
-</div>
-
----
-
-## 🚀 Overview
-
-**AeNux** is a comprehensive installer and configuration tool that enables **Adobe After Effects** to run on **Linux** through **Wine** and **Winetricks**.
-Created for creative professionals working on Linux, it provides an automated solution for installation, configuration, and plugin management.
+AeNux is an elegant, native GTK/Vala installer and runner designed to set up and run Adobe After Effects on Linux using Wine.
 
 ## Features
 
-### 🚀 AeNux Installer
-- Automatic download of Wine, VC Redistributables, and dependencies
-- Wine prefix creation and configuration
-- After Effects installation and setup
-- Registry and theme configuration
-- Desktop shortcut creation
-
-### ⚙️ AeNux Configurator
-- Manage Wine prefix and runner paths
-- Kill Wine processes
-- Open plugin, preset, and runner folders
-- Reinstall or patch runner
-- Uninstall AeNux
-
-### 🔌 Plugin Installer
-- Install AEX plugins
-- Install CEP extensions
-- Run EXE installers via Wine
-- Copy presets and scripts
-
-### 🏃 AeNux Runner
-- Run After Effects application
-- Manage virtual environment (venv)
-- Install/reinstall dependencies
-- Easy menu-based interface
-- Command-line support with flags
+- **Adobe-Style UI**: A vertical, multi-step installation wizard built with native GTK widgets.
+- **Auto-Detection**: Automatically scans your `Downloads` directory for your After Effects archive (`.7z`, `.zip`, `.rar`) and the required DLL files (`msxml3.dll`, `msxml3r.dll`).
+- **Optimal Prefix Setup**: Automatically initializes the Wine prefix and configures DLL overrides, dark theme registry settings, Windows 10 target version, and CEP extension debug mode.
+- **Modern Wayland Support**: Correctly forwards Wayland displays to prevent XWayland fallback crashes.
+- **Non-Blocking Execution**: Safe asynchronous process execution so background Wine daemons don't hang the setup process.
 
 ---
 
-## ⚠️ Known Limitations
+## Build & Installation
 
-* ❌ **Hardware Acceleration** — Limited OpenCL support (except NVIDIA GPUs)
-* 🎨 **UI Rendering** — Occasional flickering with certain plugins (e.g., Flow)
-* 💥 **Memory Issues** — Potential crashes during heavy RAM usage
-* 🐛 **Bugs** — Report any issues you encounter
-
----
-
-## 🖥️ Tested Environments
-
-| Component             | Specification                                                 |
-| --------------------- | ------------------------------------------------------------- |
-| **Operating Systems** | Linux Mint 22.1, Debian 12, ElementaryOS 8.0.1, Ubuntu Budgie |
-| **Processor**         | Intel® Core™ i3-1115G4 (11th Gen)                             |
-| **Graphics**          | Intel Tiger Lake-LP GT2 (UHD Graphics G4)                     |
-| **Memory**            | 8 GB RAM                                                      |
-
----
-
-## 📋 Dependencies
-
-### Ubuntu / Debian
-
+### 1. Install Dependencies
+Before building, make sure you have the Vala compiler and GTK development libraries installed (on Debian/Ubuntu):
 ```bash
-sudo apt update
-sudo apt install wget unzip cabextract zenity python3 python3-pip python3-venv
+sudo apt install valac libgtk-3-dev
 ```
 
-### Fedora
-
+### 2. Package and Compile
+Build the Debian package directly using the provided build script:
 ```bash
-sudo dnf install wget unzip cabextract zenity python3 python3-pip
+./package_deb.sh
 ```
+This will compile the source code and generate `aenux.deb` in the root folder.
 
-### Arch Linux
-
+### 3. Install Package
+Install the generated Debian package:
 ```bash
-sudo pacman -S wget unzip cabextract zenity python python-pip
+sudo dpkg -i aenux.deb
 ```
 
 ---
 
-## 🛠️ Installation Guide
+## Usage
 
-### 1. Download & Extract file from release page and run this command.
-
-```bash
-chmod +x run.sh
-./run.sh
-```
-
-### 2. Provide Required Microsoft Components
-
-AeNux requires **msxml3.dll** and **msxml3r.dll**, which you must supply yourself from a Windows installation:
-
-```
-C:\Windows\System32\
-```
-
-Copy both files to whatever you want
-
-### 3. Launch AeNux GUI
-
-Simply run from application menu
-
-Or use command-line flags:
-```bash
-./run.sh -r   # Run After Effects
-./run.sh -i   # Run Installer
-./run.sh -c   # Run Configurator
-./run.sh -p   # Run Plugin Installer
-./run.sh -h   # Show help
-```
+- **Installer & Configurator**: Launch `aenux_config` from your applications menu or terminal to set up the wine prefix environment.
+- **Runner**: Launch `aenux` to start After Effects through the configured environment.
 
 ---
 
-## 🧩 Plugin Installation
+## License
 
-To install plugins:
-
-1. Open the AeNux GUI: `./run.sh`
-2. Select option `4` - Run Plugin Installer
-3. Place your plugins in the respective folders:
-   - **AEX Plugins**: `PlugIn/aex/`
-   - **CEP Extensions**: `PlugIn/CEP/`
-   - **Script Installers**: `PlugIn/installer/`
-   - **Presets**: `PlugIn/preset-backup/`
-   - **Scripts**: `PlugIn/scripts/`
-
-4. Use the Plugin Installer GUI to select and install
----
-
-## 📁 Project Structure
-
-```
-AeNux/
-├── run.sh                       # Main entry point
-├── requirements.txt             # Python dependencies
-├── script/
-│   ├── AeNux_Installer.py      # Installation script
-│   ├── AeNux_Configurator.py   # Configuration GUI
-│   ├── run.py                   # After Effects runner
-│   ├── AppShortcutMake.sh       # Desktop shortcut creator
-│   ├── gui.ui                   # GTK UI definition
-│   └── aenux_config.json        # Configuration file
-├── PlugIn/
-│   ├── PlugIn.py               # Plugin installer
-│   ├── aex/                     # AEX plugins
-│   ├── CEP/                     # CEP extensions
-│   ├── installer/               # EXE installers
-│   ├── preset-backup/           # Presets
-│   └── scripts/                 # Scripts
-├── src/
-│   └── aenux.png               # Application icon
-└── venv/                        # Python virtual environment
-```
-
----
-
-## 🔧 Troubleshooting
-
-### ModuleNotFoundError: No module named 'gi'
-Run dependency installation:
-```bash
-./run.sh -d
-```
-
-### Wine not found
-The wine binary will be automatically installed. If issues persist:
-```bash
-./run.sh -c
-```
-And verify the wine path in the Configurator.
-
-### After Effects won't start
-1. Try killing Wine processes:
-   ```bash
-   ./run.sh -c
-   ```
-   Then click "Kill Wine Processes" button
-
-2. Check if configuration is correct:
-   - Verify wine_path exists
-   - Verify wineprefix exists
-   - Verify aenux_path exists
-
-### Desktop shortcut not working
-   ```bash
-run AppShortcutMake.sh
-   ```
----
-
-## Uninstallation
-
-1. Open AeNux:
-   ```bash
-   ./run.sh
-   ```
-2. Select option `2` - Run AeNux Configurator
-3. Click **Uninstall**
-
----
-
-## Too much annoying plugin icon
-
-1. open 
-   ```bash
-   ~/.local/share/applications/wine
-   ```
-2. remove the .desktop file
-
----
-
-## 🙏 Acknowledgments
-
-Special thanks to **MattKC** for his pioneering work.
-Forum reference: [https://forum.mattkc.com/viewtopic.php?t=337](https://forum.mattkc.com/viewtopic.php?t=337)
-
-Huge thanks also to **@relativemodder** for creating the AeGnux fork, making installation much simpler for the community. ❤️🐧
-
-Additional thanks to the **Wine Project** and **GTK Project** for their amazing work.
-
-
-## 🔗 Support & Contact
-
-* Telegram: **@cutefishaep**
-* GitHub Issues: Bug reports & feature requests
-* GitHub Discussions: Questions & suggestions
-
----
-
-**Last Updated**: December 2025
-
----
-
-<div align="center">
-  <strong>Happy Editing on Linux! 🎬🐧</strong>
-</div>
-
----
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.

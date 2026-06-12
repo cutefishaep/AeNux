@@ -1,31 +1,35 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-venv/
-.venv/
-env/
-.env/
-bin/
-lib/
-lib64/
-share/
-Include/
+# Meson / Build directory
+/build/
+/builddir/
+/subprojects/
 
-# Build and installers
-asset/
-*.exe
-*.msi
+# Compiled files
+*.o
 *.so
-*.dylib
-*.dll
+*.a
+*.la
+*.lo
+
+# Generated Vala C files (optional, depending on whether you commit generated C source code)
+# In this Meson project we do not commit generated C source code, so ignore .vala.c
+src/**/*.vala.c
+
+# Debian packaging artifacts
+*.deb
+*.ddeb
+*.changes
+*.buildinfo
+*.dsc
+*.tar.xz
+*.tar.gz
+
+# Temporary / OS files
+.DS_Store
+Thumbs.db
+*~
+*.swp
+*.swo
 
 # IDEs
 .vscode/
 .idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
