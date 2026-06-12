@@ -579,7 +579,7 @@ namespace AeNux {
             
             string config_content = 
                 "[Desktop Entry]\n" +
-                "Name=AeNux Configuration\n" +
+                "Name=AeNux Config\n" +
                 "Comment=Configure AeNux, Wineprefix, and Plugins\n" +
                 "Exec=aenux_config\n" +
                 "Icon=aenux-config\n" +
@@ -610,7 +610,7 @@ namespace AeNux {
                 "X-GNOME-Menu-Folder=AeNux\n" +
                 "Actions=Installer;\n\n" +
                 "[Desktop Action Installer]\n" +
-                "Name=AeNux Configuration\n" +
+                "Name=AeNux Config\n" +
                 "Exec=aenux_config\n";
             string runner_path = Path.build_filename (app_dir, "aenux-runner.desktop");
             try {

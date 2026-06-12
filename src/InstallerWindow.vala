@@ -16,14 +16,16 @@ namespace AeNux {
         private Gtk.Stack wizard_stack;
         
         // Page 1 fields
-        private Gtk.Entry install_dir_entry;
+        private Gtk.FileChooserButton install_dir_chooser;
         
         // Page 2 fields
-        private Gtk.Entry ae_archive_entry;
+        private Gtk.FileChooserButton ae_archive_chooser;
+        private Gtk.Button page2_next_btn;
         
         // Page 3 fields
-        private Gtk.Entry xml3_entry;
-        private Gtk.Entry xml3r_entry;
+        private Gtk.FileChooserButton xml3_chooser;
+        private Gtk.FileChooserButton xml3r_chooser;
+        private Gtk.Button page3_install_btn;
 
         // Logs
         private Gtk.ScrolledWindow log_scroll;
@@ -32,6 +34,7 @@ namespace AeNux {
         private FileStream? log_file = null;
 
         private bool cancelled = false;
+        private bool last_was_progress = false;
         private string? install_dir = null;
         private string? ae_archive_path = null;
         private string? msxml3_path = null;
@@ -63,6 +66,8 @@ namespace AeNux {
 
             cancel_button = new Gtk.Button.with_label ("Cancel");
             cancel_button.clicked.connect (on_cancel_clicked);
+            cancel_button.no_show_all = true;
+            cancel_button.set_visible (false);
             top_box.pack_end (cancel_button, false, false, 0);
 
             main_vbox.pack_start (top_box, false, false, 0);
@@ -112,17 +117,11 @@ namespace AeNux {
             page1_title.set_halign (Gtk.Align.START);
             p1_input_container.pack_start (page1_title, false, false, 0);
 
-            var folder_row = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 6);
-            install_dir_entry = new Gtk.Entry ();
-            install_dir_entry.set_text (Path.build_filename (Environment.get_home_dir (), "AeNux"));
-            install_dir_entry.set_hexpand (true);
-            install_dir_entry.set_width_chars (22);
-            folder_row.pack_start (install_dir_entry, true, true, 0);
-
-            var folder_browse_btn = new Gtk.Button.with_label ("Browse...");
-            folder_browse_btn.clicked.connect (on_select_install_dir);
-            folder_row.pack_start (folder_browse_btn, false, false, 0);
-            p1_input_container.pack_start (folder_row, false, false, 0);
+            string default_dir = Environment.get_home_dir ();
+            install_dir_chooser = new Gtk.FileChooserButton ("Select Folder", Gtk.FileChooserAction.SELECT_FOLDER);
+            install_dir_chooser.set_current_folder (default_dir);
+            install_dir_chooser.set_hexpand (true);
+            p1_input_container.pack_start (install_dir_chooser, false, false, 0);
             
             page1_box.pack_start (p1_input_container, false, false, 0);
 
@@ -157,18 +156,24 @@ namespace AeNux {
             page2_title.set_halign (Gtk.Align.START);
             p2_input_container.pack_start (page2_title, false, false, 0);
 
-            var archive_row = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 6);
-            ae_archive_entry = new Gtk.Entry ();
-            ae_archive_entry.set_editable (false);
-            ae_archive_entry.set_placeholder_text ("No file selected...");
-            ae_archive_entry.set_hexpand (true);
-            ae_archive_entry.set_width_chars (22);
-            archive_row.pack_start (ae_archive_entry, true, true, 0);
-
-            var archive_browse_btn = new Gtk.Button.with_label ("Browse...");
-            archive_browse_btn.clicked.connect (on_select_ae_archive);
-            archive_row.pack_start (archive_browse_btn, false, false, 0);
-            p2_input_container.pack_start (archive_row, false, false, 0);
+            ae_archive_chooser = new Gtk.FileChooserButton ("Select Archive", Gtk.FileChooserAction.OPEN);
+            var archive_filter = new Gtk.FileFilter ();
+            archive_filter.set_name ("Archive files (*.7z, *.zip, *.rar)");
+            archive_filter.add_pattern ("*.7z");
+            archive_filter.add_pattern ("*.zip");
+            archive_filter.add_pattern ("*.rar");
+            ae_archive_chooser.add_filter (archive_filter);
+            ae_archive_chooser.set_hexpand (true);
+            ae_archive_chooser.selection_changed.connect (() => {
+                ae_archive_path = ae_archive_chooser.get_filename ();
+                append_log ("[SELECT] After Effects archive: " + ae_archive_path);
+                if (ae_archive_path != null && ae_archive_path.strip () != "") {
+                    page2_next_btn.set_visible (true);
+                } else {
+                    page2_next_btn.set_visible (false);
+                }
+            });
+            p2_input_container.pack_start (ae_archive_chooser, false, false, 0);
             
             page2_box.pack_start (p2_input_container, false, false, 0);
 
@@ -186,11 +191,13 @@ namespace AeNux {
             });
             page2_nav.pack_start (page2_back_btn, false, false, 0);
 
-            var page2_next_btn = new Gtk.Button.with_label ("Next");
+            page2_next_btn = new Gtk.Button.with_label ("Next");
             page2_next_btn.get_style_context ().add_class ("suggested-action");
             page2_next_btn.clicked.connect (() => {
                 wizard_stack.set_visible_child_name ("page3");
             });
+            page2_next_btn.no_show_all = true;
+            page2_next_btn.set_visible (false);
             page2_nav.pack_start (page2_next_btn, false, false, 0);
             page2_box.pack_start (page2_nav, false, false, 0);
 
@@ -213,31 +220,38 @@ namespace AeNux {
             dll_grid.set_row_spacing (6);
             dll_grid.set_column_spacing (6);
 
+            var dll_filter = new Gtk.FileFilter ();
+            dll_filter.set_name ("DLL files (*.dll)");
+            dll_filter.add_pattern ("*.dll");
+            dll_filter.add_pattern ("*.DLL");
+
             var xml3_label = new Gtk.Label ("msxml3.dll:");
             xml3_label.set_halign (Gtk.Align.START);
-            xml3_entry = new Gtk.Entry ();
-            xml3_entry.set_editable (false);
-            xml3_entry.set_placeholder_text ("No file selected...");
-            xml3_entry.set_width_chars (20);
-            var xml3_btn = new Gtk.Button.with_label ("Browse...");
-            xml3_btn.clicked.connect (on_select_msxml3);
-
-            dll_grid.attach (xml3_label, 0, 0, 1, 1);
-            dll_grid.attach (xml3_entry, 1, 0, 1, 1);
-            dll_grid.attach (xml3_btn, 2, 0, 1, 1);
+            xml3_chooser = new Gtk.FileChooserButton ("Select msxml3.dll", Gtk.FileChooserAction.OPEN);
+            xml3_chooser.add_filter (dll_filter);
+            xml3_chooser.set_hexpand (true);
+            xml3_chooser.selection_changed.connect (() => {
+                msxml3_path = xml3_chooser.get_filename ();
+                append_log ("[SELECT] msxml3.dll: " + msxml3_path);
+                update_page3_install_button_visibility ();
+            });
 
             var xml3r_label = new Gtk.Label ("msxml3r.dll:");
             xml3r_label.set_halign (Gtk.Align.START);
-            xml3r_entry = new Gtk.Entry ();
-            xml3r_entry.set_editable (false);
-            xml3r_entry.set_placeholder_text ("No file selected...");
-            xml3r_entry.set_width_chars (20);
-            var xml3r_btn = new Gtk.Button.with_label ("Browse...");
-            xml3r_btn.clicked.connect (on_select_msxml3r);
+            xml3r_chooser = new Gtk.FileChooserButton ("Select msxml3r.dll", Gtk.FileChooserAction.OPEN);
+            xml3r_chooser.add_filter (dll_filter);
+            xml3r_chooser.set_hexpand (true);
+            xml3r_chooser.selection_changed.connect (() => {
+                msxml3r_path = xml3r_chooser.get_filename ();
+                append_log ("[SELECT] msxml3r.dll: " + msxml3r_path);
+                update_page3_install_button_visibility ();
+            });
+
+            dll_grid.attach (xml3_label, 0, 0, 1, 1);
+            dll_grid.attach (xml3_chooser, 1, 0, 2, 1);
 
             dll_grid.attach (xml3r_label, 0, 1, 1, 1);
-            dll_grid.attach (xml3r_entry, 1, 1, 1, 1);
-            dll_grid.attach (xml3r_btn, 2, 1, 1, 1);
+            dll_grid.attach (xml3r_chooser, 1, 1, 2, 1);
 
             p3_input_container.pack_start (dll_grid, false, false, 0);
             page3_box.pack_start (p3_input_container, false, false, 0);
@@ -256,9 +270,11 @@ namespace AeNux {
             });
             page3_nav.pack_start (page3_back_btn, false, false, 0);
 
-            var page3_install_btn = new Gtk.Button.with_label ("Install");
+            page3_install_btn = new Gtk.Button.with_label ("Install");
             page3_install_btn.get_style_context ().add_class ("suggested-action");
             page3_install_btn.clicked.connect (on_install_clicked);
+            page3_install_btn.no_show_all = true;
+            page3_install_btn.set_visible (false);
             page3_nav.pack_start (page3_install_btn, false, false, 0);
             page3_box.pack_start (page3_nav, false, false, 0);
 
@@ -283,20 +299,18 @@ namespace AeNux {
             log_scroll.set_size_request (300, 120);
             log_scroll.set_halign (Gtk.Align.CENTER);
             
-            page4_box.pack_start (log_scroll, false, false, 6);
+            var log_expander = new Gtk.Expander ("Show Logs");
+            log_expander.set_halign (Gtk.Align.CENTER);
+            log_expander.add (log_scroll);
+            log_expander.notify["expanded"].connect ((s, p) => {
+                log_expander.label = log_expander.expanded ? "Hide Logs" : "Show Logs";
+            });
+            page4_box.pack_start (log_expander, false, false, 6);
 
             // Expanding spacer
             var p4_spacer = new Gtk.Box (Gtk.Orientation.VERTICAL, 0);
             p4_spacer.set_vexpand (true);
             page4_box.pack_start (p4_spacer, true, true, 0);
-
-            // Cancel button centered at the very bottom
-            var install_cancel_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 0);
-            install_cancel_box.set_halign (Gtk.Align.CENTER);
-            var install_cancel_btn = new Gtk.Button.with_label ("Cancel");
-            install_cancel_btn.clicked.connect (on_cancel_clicked);
-            install_cancel_box.pack_start (install_cancel_btn, false, false, 0);
-            page4_box.pack_start (install_cancel_box, false, false, 0);
 
             wizard_stack.add_named (page4_box, "page4");
 
@@ -337,7 +351,7 @@ namespace AeNux {
                     string path = Path.build_filename (downloads, p);
                     if (FileUtils.test (path, FileTest.EXISTS)) {
                         ae_archive_path = path;
-                        ae_archive_entry.set_text (path);
+                        ae_archive_chooser.set_filename (path);
                         append_log ("[AUTO-DETECT] Found After Effects archive: " + path);
                         break;
                     }
@@ -347,7 +361,7 @@ namespace AeNux {
                 string path_xml3 = Path.build_filename (downloads, "msxml3.dll");
                 if (FileUtils.test (path_xml3, FileTest.EXISTS)) {
                     msxml3_path = path_xml3;
-                    xml3_entry.set_text (path_xml3);
+                    xml3_chooser.set_filename (path_xml3);
                     append_log ("[AUTO-DETECT] Found msxml3.dll: " + path_xml3);
                 }
                 
@@ -355,88 +369,23 @@ namespace AeNux {
                 string path_xml3r = Path.build_filename (downloads, "msxml3r.dll");
                 if (FileUtils.test (path_xml3r, FileTest.EXISTS)) {
                     msxml3r_path = path_xml3r;
-                    xml3r_entry.set_text (path_xml3r);
+                    xml3r_chooser.set_filename (path_xml3r);
                     append_log ("[AUTO-DETECT] Found msxml3r.dll: " + path_xml3r);
                 }
+                if (ae_archive_path != null && ae_archive_path.strip () != "") {
+                    page2_next_btn.set_visible (true);
+                }
+                update_page3_install_button_visibility ();
             }
         }
 
-        private void on_select_install_dir () {
-            var dialog = new Gtk.FileChooserDialog (
-                "Select Installation Directory",
-                this,
-                Gtk.FileChooserAction.SELECT_FOLDER,
-                "_Cancel", Gtk.ResponseType.CANCEL,
-                "_Open", Gtk.ResponseType.ACCEPT
-            );
-            if (dialog.run () == Gtk.ResponseType.ACCEPT) {
-                string path = dialog.get_filename ();
-                install_dir_entry.set_text (path);
-                append_log ("[SELECT] Installation directory: " + path);
+        private void update_page3_install_button_visibility () {
+            if (msxml3_path != null && msxml3_path.strip () != "" &&
+                msxml3r_path != null && msxml3r_path.strip () != "") {
+                page3_install_btn.set_visible (true);
+            } else {
+                page3_install_btn.set_visible (false);
             }
-            dialog.destroy ();
-        }
-
-        private void on_select_ae_archive () {
-            var dialog = new Gtk.FileChooserDialog (
-                "Select After Effects Archive (.7z, .zip, .rar)",
-                this,
-                Gtk.FileChooserAction.OPEN,
-                "_Cancel", Gtk.ResponseType.CANCEL,
-                "_Open", Gtk.ResponseType.ACCEPT
-            );
-            var filter = new Gtk.FileFilter ();
-            filter.set_name ("Archive files");
-            filter.add_pattern ("*.7z");
-            filter.add_pattern ("*.zip");
-            filter.add_pattern ("*.rar");
-            dialog.add_filter (filter);
-            if (dialog.run () == Gtk.ResponseType.ACCEPT) {
-                ae_archive_path = dialog.get_filename ();
-                ae_archive_entry.set_text (ae_archive_path);
-                append_log ("[SELECT] After Effects archive: " + ae_archive_path);
-            }
-            dialog.destroy ();
-        }
-
-        private void on_select_msxml3 () {
-            var dialog = new Gtk.FileChooserDialog (
-                "Select msxml3.dll",
-                this,
-                Gtk.FileChooserAction.OPEN,
-                "_Cancel", Gtk.ResponseType.CANCEL,
-                "_Open", Gtk.ResponseType.ACCEPT
-            );
-            var filter = new Gtk.FileFilter ();
-            filter.set_name ("DLL files");
-            filter.add_pattern ("*.dll");
-            dialog.add_filter (filter);
-            if (dialog.run () == Gtk.ResponseType.ACCEPT) {
-                msxml3_path = dialog.get_filename ();
-                xml3_entry.set_text (msxml3_path);
-                append_log ("[SELECT] msxml3.dll: " + msxml3_path);
-            }
-            dialog.destroy ();
-        }
-
-        private void on_select_msxml3r () {
-            var dialog = new Gtk.FileChooserDialog (
-                "Select msxml3r.dll",
-                this,
-                Gtk.FileChooserAction.OPEN,
-                "_Cancel", Gtk.ResponseType.CANCEL,
-                "_Open", Gtk.ResponseType.ACCEPT
-            );
-            var filter = new Gtk.FileFilter ();
-            filter.set_name ("DLL files");
-            filter.add_pattern ("*.dll");
-            dialog.add_filter (filter);
-            if (dialog.run () == Gtk.ResponseType.ACCEPT) {
-                msxml3r_path = dialog.get_filename ();
-                xml3r_entry.set_text (msxml3r_path);
-                append_log ("[SELECT] msxml3r.dll: " + msxml3r_path);
-            }
-            dialog.destroy ();
         }
 
         private void on_cancel_clicked () {
@@ -450,8 +399,8 @@ namespace AeNux {
         }
 
         private void on_install_clicked () {
-            install_dir = install_dir_entry.get_text ().strip ();
-            if (install_dir == "") {
+            install_dir = install_dir_chooser.get_filename ();
+            if (install_dir == null || install_dir.strip () == "") {
                 append_log ("[ERROR] Please select an installation directory.");
                 return;
             }
@@ -470,15 +419,15 @@ namespace AeNux {
 
             cancelled = false;
             
-            // Hide top bar cancel button (we show the cancel button in the middle stack bottom)
-            cancel_button.set_visible (false);
+            // Ensure top bar cancel button remains visible
+            cancel_button.set_visible (true);
             
             wizard_stack.set_visible_child_name ("page4");
             top_title_label.set_text ("Install AeNux (0%)");
 
             append_log ("[SETUP] Starting installation...");
 
-            string target_dir = install_dir;
+            string target_dir = Path.build_filename (install_dir, "AeNux");
             string ae_path = ae_archive_path;
             string xml3 = msxml3_path;
             string xml3r = msxml3r_path;
@@ -491,7 +440,7 @@ namespace AeNux {
 
         private int run_installation (string base_dir, string ae_archive, string xml3, string xml3r) {
             DirUtils.create_with_parents (base_dir, 0755);
-            Utils.set_config_value ("aenux_path", Path.build_filename (base_dir, "AfterEffects"));
+            Utils.set_config_value ("aenux_path", Path.build_filename (base_dir, "ae"));
 
             // Initialize logging to file
             string log_path = Path.build_filename (base_dir, "install.log");
@@ -503,7 +452,7 @@ namespace AeNux {
             if (cancelled) return 0;
 
             // 0. Install system packages via pkexec
-            update_progress (0.05, "Installing extraction tools, Wine deps & OpenCL drivers (requires authentication)...");
+            update_progress (0.05, "Installing system dependencies...");
             append_log ("[SETUP] Running package manager to install dependencies...");
 
             string package_script =
@@ -541,13 +490,13 @@ namespace AeNux {
 
             // --- Locate or install 7-Zip for extraction ---
             if (cancelled) return 0;
-            update_progress (0.06, "Preparing 7-Zip extraction tool...");
+            update_progress (0.06, "Preparing 7-Zip...");
             string sevenzip_bin = Path.build_filename (temp_dir, "7zz");
             if (!FileUtils.test (sevenzip_bin, FileTest.EXISTS)) {
                 append_log ("[SETUP] Downloading standalone 7-Zip for Linux from 7-zip.org...");
                 string sevenz_tar = Path.build_filename (temp_dir, "7z-linux.tar.xz");
                 Utils.download_file_with_progress ("https://www.7-zip.org/a/7z2301-linux-x64.tar.xz", sevenz_tar, (fraction, msg) => {
-                    update_progress (0.05 + fraction * 0.03, "Preparing standalone 7-Zip tool...");
+                    update_progress (0.05 + fraction * 0.03, "Preparing standalone 7-Zip...");
                     append_log (msg);
                 });
                 string? out7z, err7z;
@@ -563,7 +512,7 @@ namespace AeNux {
 
             // --- Downloads ---
             if (cancelled) return 0;
-            update_progress (0.09, "Downloading Wine, Gecko, Winetricks, and Redists...");
+            update_progress (0.09, "Downloading required components...");
             append_log ("[DOWNLOAD] Retrieving Wine, Gecko, Winetricks, and Redists...");
 
             string vc64 = Path.build_filename (temp_dir, "vc_redist.x64.exe");
@@ -577,7 +526,7 @@ namespace AeNux {
                 append_log ("[DOWNLOAD] Source: https://aka.ms/vs/17/release/vc_redist.x64.exe");
                 append_log ("[DOWNLOAD] Destination: " + vc64);
                 Utils.download_file_with_progress ("https://aka.ms/vs/17/release/vc_redist.x64.exe", vc64, (fraction, msg) => {
-                    update_progress (0.10 + fraction * 0.04, "Downloading VC++ Redistributable x64...");
+                    update_progress (0.10 + fraction * 0.04, "Downloading Visual C++ Redistributable x64...");
                     append_log (msg);
                 });
                 append_log ("[DOWNLOAD] Completed vc_redist.x64.exe");
@@ -587,7 +536,7 @@ namespace AeNux {
                 append_log ("[DOWNLOAD] Source: https://aka.ms/vs/17/release/vc_redist.x86.exe");
                 append_log ("[DOWNLOAD] Destination: " + vc86);
                 Utils.download_file_with_progress ("https://aka.ms/vs/17/release/vc_redist.x86.exe", vc86, (fraction, msg) => {
-                    update_progress (0.14 + fraction * 0.04, "Downloading VC++ Redistributable x86...");
+                    update_progress (0.14 + fraction * 0.04, "Downloading Visual C++ Redistributable x86...");
                     append_log (msg);
                 });
                 append_log ("[DOWNLOAD] Completed vc_redist.x86.exe");
@@ -597,7 +546,7 @@ namespace AeNux {
                 append_log ("[DOWNLOAD] Source: https://github.com/Kron4ek/Wine-Builds/releases/download/proton-exp-11.0/wine-proton-exp-11.0-amd64.tar.xz");
                 append_log ("[DOWNLOAD] Destination: " + wine_archive);
                 Utils.download_file_with_progress ("https://github.com/Kron4ek/Wine-Builds/releases/download/proton-exp-11.0/wine-proton-exp-11.0-amd64.tar.xz", wine_archive, (fraction, msg) => {
-                    update_progress (0.18 + fraction * 0.12, "Downloading Wine Proton Experimental 11.0 (Kron4ek)...");
+                    update_progress (0.18 + fraction * 0.12, "Downloading Wine runtime...");
                     append_log (msg);
                 });
                 append_log ("[DOWNLOAD] Completed Wine Proton Experimental 11.0 archive");
@@ -625,9 +574,9 @@ namespace AeNux {
 
             // 2. Extract After Effects
             if (cancelled) return 0;
-            update_progress (0.36, "Extracting After Effects archive...");
+            update_progress (0.36, "Extracting After Effects...");
             append_log ("[EXTRACT] Extracting After Effects archive...");
-            string ae_dir = Path.build_filename (base_dir, "AfterEffects");
+            string ae_dir = Path.build_filename (base_dir, "ae");
             DirUtils.create_with_parents (ae_dir, 0755);
             if (!Utils.run_command_stream ({sevenzip_bin, "x", ae_archive, "-o" + ae_dir, "-y"}, (msg) => {
                 append_log ("[EXTRACT-AE] " + msg);
@@ -638,7 +587,7 @@ namespace AeNux {
 
             // 3. Extract Wine
             if (cancelled) return 0;
-            update_progress (0.50, "Extracting Wine Proton Experimental 11.0 (Kron4ek)...");
+            update_progress (0.50, "Extracting Wine runtime...");
             append_log ("[EXTRACT] Extracting Kron4ek Wine Proton Experimental 11.0...");
             string wine_dir = Path.build_filename (base_dir, "wine");
             DirUtils.create_with_parents (wine_dir, 0755);
@@ -651,7 +600,7 @@ namespace AeNux {
 
             // 4. Install Winetricks
             if (cancelled) return 0;
-            update_progress (0.60, "Copying winetricks tool...");
+            update_progress (0.60, "Configuring Winetricks...");
             append_log ("[SETUP] Installing Winetricks...");
             string wt_dest = Path.build_filename (wine_dir, "bin", "winetricks");
             FileUtils.chmod (winetricks, 0755);
@@ -661,7 +610,7 @@ namespace AeNux {
 
             // 5. Wineprefix Init
             if (cancelled) return 0;
-            update_progress (0.70, "Initializing Wine prefix...");
+            update_progress (0.70, "Configuring Wine environment...");
             append_log ("[WINE] Constructing wine prefix environment...");
             string prefix_dir = Path.build_filename (base_dir, "Wineprefix");
             DirUtils.create_with_parents (prefix_dir, 0755);
@@ -689,7 +638,7 @@ namespace AeNux {
 
             // 6. Dependencies — gecko, vcredist, winetricks verbs
             if (cancelled) return 0;
-            update_progress (0.80, "Installing VC++ Redists, Wine Gecko, DXVK/VKD3D...");
+            update_progress (0.80, "Installing Windows runtime components...");
 
             string[] env_install = env;
             env_install = Environ.set_variable (env_install, "WINEDLLOVERRIDES",
@@ -727,7 +676,7 @@ namespace AeNux {
 
             // 7. DLL overrides & registry configuration
             if (cancelled) return 0;
-            update_progress (0.95, "Copying DLLs and configuring registry...");
+            update_progress (0.95, "Configuring libraries and registry...");
             append_log ("[SETUP] Copying msxml3.dll and msxml3r.dll...");
             string system32 = Path.build_filename (prefix_dir, "drive_c", "windows", "system32");
 
@@ -757,12 +706,16 @@ namespace AeNux {
 
             // 8. Save config
             if (cancelled) return 0;
-            update_progress (0.99, "Saving configuration...");
+            update_progress (0.99, "Saving settings...");
+            Utils.set_config_value ("user_location", base_dir);
             Utils.set_config_value ("wine_path", wine_dir);
             Utils.set_config_value ("wineprefix", prefix_dir);
             Utils.set_config_value ("aenux_path", ae_dir);
 
-            update_progress (1.0, "Installation complete!");
+            // Create desktop shortcuts/overrides
+            Utils.create_desktop_overrides ();
+
+            update_progress (1.0, "Installation complete");
             append_log ("[SETUP] Installation completed successfully!");
             append_log ("[SETUP] Wine path: " + wine_dir);
             append_log ("[SETUP] Wine prefix: " + prefix_dir);
@@ -787,18 +740,53 @@ namespace AeNux {
         }
 
         private void append_log (string message) {
-            stdout.printf ("%s\n", message);
-            if (log_file != null) {
-                log_file.printf ("%s\n", message);
-                log_file.flush ();
+            bool is_progress = message.has_prefix ("Downloading...");
+            
+            if (is_progress) {
+                stdout.printf ("\r%s", message);
+                stdout.flush ();
+            } else {
+                if (last_was_progress) {
+                    stdout.printf ("\n");
+                }
+                stdout.printf ("%s\n", message);
             }
+
+            if (log_file != null) {
+                if (is_progress) {
+                    log_file.printf ("\r%s", message);
+                    log_file.flush ();
+                } else {
+                    if (last_was_progress) {
+                        log_file.printf ("\n");
+                    }
+                    log_file.printf ("%s\n", message);
+                    log_file.flush ();
+                }
+            }
+
+            last_was_progress = is_progress;
+
             Idle.add (() => {
                 if (!this.get_visible ()) {
                     return false;
                 }
+                
                 Gtk.TextIter end;
                 log_buffer.get_end_iter (out end);
+                
+                if (is_progress && log_buffer.get_line_count () > 1) {
+                    Gtk.TextIter start = end;
+                    start.backward_line ();
+                    string last_line_text = log_buffer.get_text (start, end, false);
+                    if (last_line_text.strip ().has_prefix ("Downloading...")) {
+                        log_buffer.delete (ref start, ref end);
+                    }
+                }
+                
+                log_buffer.get_end_iter (out end);
                 log_buffer.insert (ref end, message + "\n", -1);
+                
                 var adj = log_scroll.get_vadjustment ();
                 if (adj != null) {
                     adj.set_value (adj.get_upper () - adj.get_page_size ());

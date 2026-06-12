@@ -78,7 +78,7 @@ Version: 2.0.0
 Section: utils
 Priority: optional
 Architecture: amd64
-Depends: libgtk-3-0, valac, unzip, tar, curl, coreutils, psmisc, p7zip-full, gcc-mingw-w64-x86-64, python3
+Depends: libgtk-3-0, unzip, tar, curl, coreutils, p7zip-full, cabextract
 Maintainer: cutefishaep <cutefishaep@github.com>
 Description: AeNux is an After Effects manager for Linux with custom Wine prefixes.
 EOF
@@ -89,6 +89,7 @@ cat <<EOF > "$BUILD_DIR/DEBIAN/postinst"
 set -e
 chmod +x /opt/aenux/aenux
 chmod +x /opt/aenux/aenux_config
+chmod 777 /opt/aenux
 update-desktop-database -q
 gtk-update-icon-cache -f -t /usr/share/icons/hicolor || true
 EOF
