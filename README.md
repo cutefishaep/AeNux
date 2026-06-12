@@ -1,5 +1,9 @@
 # AeNux
 
+<p align="center">
+  <img src="asset/aenux.svg" alt="AeNux Logo" width="140">
+</p>
+
 AeNux is a native GTK and Vala-based installer, runner, and configuration utility designed to set up and run Adobe After Effects on Linux systems via Wine.
 
 ## Features
@@ -80,7 +84,7 @@ rm -rf ~/.local/share/applications/wine/
 
 ## Acknowledgments
 
-- **MattKC** for research regarding After Effects compatibility on Wine ([Forum Thread](https://forum.mattkc.com/viewtopic.php?t=337)).
+- **MattKC** for research regarding After Effects compatibility on Wine ([Forum Thread](https://web.archive.org/web/20260226172316/https://forum.mattkc.com/viewtopic.php?t=337)).
 - **@relativemodder** for the original AeGnux script implementation.
 - The **Wine** and **GTK** projects.
 
