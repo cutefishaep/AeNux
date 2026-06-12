@@ -4,7 +4,12 @@
 
 set -e
 
-echo "=== Packaging AeNux as a Debian Package ==="
+VERSION="2.0.0"
+if [ -n "$1" ]; then
+    VERSION="${1#v}"
+fi
+
+echo "=== Packaging AeNux v${VERSION} as a Debian Package ==="
 
 # 1. Compile clean sources
 # Check for valac
@@ -74,7 +79,7 @@ EOF
 # 7. Write DEBIAN control file
 cat <<EOF > "$BUILD_DIR/DEBIAN/control"
 Package: aenux
-Version: 2.0.0
+Version: $VERSION
 Section: utils
 Priority: optional
 Architecture: amd64
@@ -106,11 +111,11 @@ chmod 755 "$BUILD_DIR/DEBIAN/postrm"
 
 # 10. Build Debian Package
 echo "Building deb package..."
-dpkg-deb --build "$BUILD_DIR" aenux.deb
+dpkg-deb --build "$BUILD_DIR" "aenux_${VERSION}_amd64.deb"
 
 # 11. Cleanup temporary files
 rm -rf "$BUILD_DIR"
 
-echo "=== Package aenux.deb created successfully! ==="
+echo "=== Package aenux_${VERSION}_amd64.deb created successfully! ==="
 echo "You can install it with:"
-echo "  sudo dpkg -i aenux.deb"
+echo "  sudo dpkg -i aenux_${VERSION}_amd64.deb"
